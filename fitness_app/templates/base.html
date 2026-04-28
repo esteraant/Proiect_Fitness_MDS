@@ -1,0 +1,58 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AlgoRhythm Gym{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'fitness_app/css/style.css' %}">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="nav-brand">🎵 AlgoRhythm Gym</div>
+            <ul class="nav-links">
+                <li><a href="{% url 'home' %}">Acasă</a></li>
+                <li><a href="#">Program Clase</a></li>
+                <li><a href="{% url 'instructors' %}">Instructori</a></li>
+                <li><a href="#">Profil</a></li>
+            </ul>
+            {% if user.role == 'ADM' %}
+                <li><a href="{% url 'admin:index' %}" style="color: #f1c40f;">Admin Panel</a></li>
+            {% endif %}
+            <div class="nav-auth">
+                <span class="user-tag">{{ user.username }} ({{ user.get_role_display }})</span>
+                <a href="{% url 'login' %}" class="btn-logout">Logout</a>
+            </div>
+    </nav>
+
+    <div class="container">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <footer class="main-footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p>📍 Str. Academiei Nr. 14</p>
+                <p>📞 0707 070 070</p>
+            </div>
+            <div class="footer-section">
+                <h4>Social Media</h4>
+                <p>Instagram: @AlgoRhythmGym</p>
+                <p>Facebook: AlgoRhythm Gym</p>
+            </div>
+            <div class="footer-section">
+                <h4>Program</h4>
+                <p>L-V: 07:00 - 23:00</p>
+                <p>S-D: 07:00 - 18:00</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 AlgoRhythm Gym - Proiect MDS</p>
+        </div>
+    </footer>
+
+</body>
+</html>

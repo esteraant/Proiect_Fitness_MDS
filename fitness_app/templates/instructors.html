@@ -1,0 +1,35 @@
+{% extends 'base.html' %} 
+{% block title %}Instructori - AlgoRhythm Gym{% endblock %}
+{% block content %}
+<h1 style="text-align: center; color: #2c3e50; margin: 40px 0;">Echipa AlgoRhythm Gym</h1>
+
+<div class="instructors-grid">
+    {% for inst in instructors %}
+        <div class="instructor-card">
+            <div class="card-content">
+                <div class="inst-details">
+                    <h3>{{ inst.first_name }} {{ inst.last_name }}</h3>
+                    <p class="badge">Instructor Certificat</p>
+                    <p><strong>Gen:</strong> {{ inst.get_gender_display }}</p>
+                    <p><strong>Experiență:</strong> {{ inst.experience_years }} ani</p>
+                    <p class="bio">"{{ inst.bio_short|default:'Pasionat de fitness!' }}"</p>
+                </div>
+                
+                <div class="inst-photo-container">
+                    {% if inst.profile_picture %}
+                        <img src="{{ inst.profile_picture.url }}" alt="{{ inst.first_name }}">
+                    {% else %}
+                        <div class="placeholder-circle">{{ inst.first_name|first }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <a href="{% url 'instructor_detail' inst.id %}" class="btn-ocean">
+                Vezi Profil & Clase
+            </a>
+        </div>
+    {% empty %}
+        <p>Momentan nu avem instructori înregistrați.</p>
+    {% endfor %}
+</div>
+{% endblock %}

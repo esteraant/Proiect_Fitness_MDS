@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}Înregistrare - AlgoRhythm Gym{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: center; align-items: center; min-height: 70vh;">
+    <div class="welcome-card" style="width: 100%; max-width: 500px; border-top: 5px solid #3498db;">
+        <h2 style="color: #2c3e50; text-align: center;">Alătură-te echipei</h2>
+        
+        <form method="POST">
+            {% csrf_token %}
+            <div style="margin-bottom: 1rem;">
+                {{ form.as_p }}
+            </div>
+            
+            <button type="submit" class="btn-ocean" style="width: 100%; border: none; cursor: pointer;">
+                Creează Contul
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

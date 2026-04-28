@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="welcome-card" style="border-top: 5px solid #27ae60;">
+    <h1>{{ instructor.first_name }} {{ instructor.last_name }}</h1>
+    <p><strong>Specializare:</strong> Antrenor AlgoRhythm Gym</p>
+    <hr>
+    <p><strong>Despre:</strong> Salut! Sunt un pasionat de fitness și te pot ajuta să îți atingi obiectivele.</p>
+    <p><strong>Gen:</strong> {{ instructor.get_gender_display }}</p>
+</div>
+
+<h2>📅 Clasele predate de {{ instructor.first_name }}</h2>
+<div class="grid">
+    {% for class in classes %}
+        <div class="card">
+            <h3>{{ class.name }}</h3>
+            <p>Tip: {{ class.get_type_display }}</p>
+            <p>Ora: {{ class.start_time|date:"H:i" }}</p>
+        </div>
+    {% empty %}
+        <p>Acest instructor nu are clase programate momentan.</p>
+    {% endfor %}
+</div>
+
+<a href="{% url 'instructors' %}" style="display:inline-block; margin-top:20px;">⬅ Înapoi la listă</a>
+{% endblock %}

@@ -1,7 +1,17 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 from .models import User, Subscription, FitnessClass, Booking, Review, InstructorReview, FAQ, ChatMessage, Notification
 
-admin.site.register(User)
+class CustomUserAdmin(UserAdmin):
+    fieldsets = UserAdmin.fieldsets + (
+        ('Info Instructor (Doar pentru rol INS)', {
+            'fields': ('experience_years', 'bio_short', 'profile_picture'),
+        }),
+    )
+
+admin.site.register(User, CustomUserAdmin)
+
+
 admin.site.register(Subscription)
 admin.site.register(FitnessClass)
 admin.site.register(Booking)
