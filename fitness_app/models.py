@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-
+from django.core.exceptions import ValidationError
 
 
 class User(AbstractUser):
@@ -22,6 +22,11 @@ class User(AbstractUser):
     referred_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='referrals')
     referral_count = models.IntegerField(default=0)
     referral_discount_available = models.IntegerField(default=0)  # nr de reduceri neutilizate
+
+    experience_years = models.IntegerField(null=True, blank=True)
+    bio_short = models.TextField(null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='instructors/', null=True, blank=True)
+
     fitness_goal = models.TextField(blank=True)
     frequency_per_week = models.IntegerField(default=0)
 
@@ -65,6 +70,9 @@ class FitnessClass(models.Model):
 
     type = models.CharField(max_length=4, choices=CLASS_TYPES, default='GRP')
     instructor = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, limit_choices_to={'role': 'INS'})
+    is_for_women_only = models.BooleanField(default=False)
+    is_for_children = models.BooleanField(default=False)
+
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0)
 
@@ -85,6 +93,14 @@ class FitnessClass(models.Model):
     def __str__(self):
         return f"{self.name} - {self.instructor.last_name if self.instructor else 'Fără instructor'}"
 
+    def clean(self):
+        super().clean()
+        
+        if self.is_for_women_only and self.instructor:
+            if self.instructor.gender != 'F':
+                raise ValidationError({
+                    'instructor': 'O clasă destinată exclusiv femeilor trebuie să aibă un instructor de gen feminin.'
+                })
 
 
 # Tabelul pentru rezervari, Early Bird si Check-in

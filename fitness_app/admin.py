@@ -4,16 +4,23 @@ from .models import User, Subscription, FitnessClass, Booking, Review, Instructo
 
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ('Info Instructor (Doar pentru rol INS)', {
+        ('Informații Adiționale', {
+            'fields': ('role', 'gender', 'fitness_goal'), 
+        }),
+        ('Info Instructor (Doar pentru INS)', {
             'fields': ('experience_years', 'bio_short', 'profile_picture'),
         }),
     )
+    list_display = ('username', 'email', 'role', 'is_staff')
+
+@admin.register(FitnessClass)
+class FitnessClassAdmin(admin.ModelAdmin):
+    list_display = ('name', 'instructor', 'start_time', 'is_for_women_only')
+    list_filter = ('is_for_women_only', 'type')
 
 admin.site.register(User, CustomUserAdmin)
 
-
 admin.site.register(Subscription)
-admin.site.register(FitnessClass)
 admin.site.register(Booking)
 admin.site.register(Review)
 admin.site.register(InstructorReview)

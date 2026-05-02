@@ -2,11 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from .models import Subscription, Booking, User, FitnessClass
-
-from django.contrib.auth.forms import UserCreationForm
 from .forms import CustomUserCreationForm
-
 
 def login_view(request):
     if request.method == 'POST':
@@ -30,6 +28,7 @@ def home_view(request):
         'attended_count': attended_count,
     }
     return render(request, 'home.html', context)
+
 
 def instructors_view(request):
     # Filtram utilizatorii care au rolul de instructor
@@ -61,3 +60,29 @@ def register_view(request):
     else:
         form = CustomUserCreationForm()
     return render(request, 'register.html', {'form': form})
+
+
+def classes_view(request):
+    fitness_classes = FitnessClass.objects.all()
+    return render(request, 'classes.html', {'fitness_classes': fitness_classes})
+
+def class_detail_view(request, class_id):
+    fitness_class = get_object_or_404(FitnessClass, id=class_id)
+    return render(request, 'class_detail.html', {'fitness_class': fitness_class})
+    
+@staff_member_required
+def admin_dashboard_view(request):
+
+    total_users = User.objects.count()
+    total_classes = FitnessClass.objects.count()
+    recent_bookings = Booking.objects.all().order_by('-id')[:5] 
+    # ultimele 5 rezervari
+
+    context = {
+        'total_users': total_users,
+        'total_classes': total_classes,
+        'recent_bookings': recent_bookings,
+    }
+    return render(request, 'admin_dashboard.html', context)
+
+

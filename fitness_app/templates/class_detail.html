@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="welcome-card class-detail-card">
+        <div class="class-header">
+            <h1 class="class-title">{{ fitness_class.name }}</h1>
+            <span class="badge-type">{{ fitness_class.get_type_display }}</span>
+        </div>
+        
+        <hr class="divider">
+
+        <div class="class-info-grid">
+            <div class="info-item">
+                <strong>Ora de start:</strong> 
+                <span>{{ fitness_class.start_time|date:"H:i" }} ({{ fitness_class.duration_minutes }} min)</span>
+            </div>
+            <div class="info-item">
+                <strong>Capacitate:</strong> 
+                <span>{{ fitness_class.available_spots }} locuri libere / {{ fitness_class.max_capacity }}</span>
+            </div>
+            <div class="info-item">
+                <strong>Preț:</strong> 
+                <span class="price-tag">{{ fitness_class.price }} RON</span>
+            </div>
+        </div>
+
+        <div class="instructor-showcase">
+            <a href="{% url 'instructor_detail' fitness_class.instructor.id %}" class="instructor-link">
+                <div class="photo-container">
+                    {% if fitness_class.instructor.profile_picture %}
+                        <img src="{{ fitness_class.instructor.profile_picture.url }}" class="profile-img-small">
+                    {% else %}
+                        <div class="placeholder-circle-small">
+                            {{ fitness_class.instructor.first_name|first }}
+                        </div>
+                    {% endif %}
+                </div>
+                <p class="instructor-label">Antrenor: <strong>{{ fitness_class.instructor.first_name }}</strong></p>
+            </a>
+        </div>
+    </div>
+
+    <div class="navigation-actions">
+        <a href="{% url 'fitness_classes_list' %}" class="btn-back">
+            <span class="icon">⬅</span> Înapoi la program
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,26 +1,46 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="welcome-card" style="border-top: 5px solid #27ae60;">
-    <h1>{{ instructor.first_name }} {{ instructor.last_name }}</h1>
-    <p><strong>Specializare:</strong> Antrenor AlgoRhythm Gym</p>
-    <hr>
-    <p><strong>Despre:</strong> Salut! Sunt un pasionat de fitness și te pot ajuta să îți atingi obiectivele.</p>
-    <p><strong>Gen:</strong> {{ instructor.get_gender_display }}</p>
-</div>
-
-<h2>📅 Clasele predate de {{ instructor.first_name }}</h2>
-<div class="grid">
-    {% for class in classes %}
-        <div class="card">
-            <h3>{{ class.name }}</h3>
-            <p>Tip: {{ class.get_type_display }}</p>
-            <p>Ora: {{ class.start_time|date:"H:i" }}</p>
+<div class="container"> 
+    <div class="welcome-card detail-card">
+        <div class="detail-header">
+            <div class="detail-text">
+                <h1>{{ instructor.first_name }} {{ instructor.last_name }}</h1>
+                <p class="specialization">Antrenor AlgoRhythm Gym</p>
+                <hr>
+                <p><strong>Despre:</strong> {{ instructor.bio_short|default:"Pasionat de fitness și dedicat obiectivelor tale!" }}</p>
+                <p><strong>Experiență:</strong> {{ instructor.experience_years|default:"0" }} ani</p>
+                <p><strong>Gen:</strong> {{ instructor.get_gender_display }}</p>
+            </div>
+            
+            <div class="detail-photo">
+                {% if instructor.profile_picture %}
+                    <img src="{{ instructor.profile_picture.url }}" alt="{{ instructor.first_name }}" class="profile-img-large">
+                {% else %}
+                    <div class="placeholder-circle-large">{{ instructor.first_name|first }}</div>
+                {% endif %}
+            </div>
         </div>
-    {% empty %}
-        <p>Acest instructor nu are clase programate momentan.</p>
-    {% endfor %}
-</div>
+    </div>
 
-<a href="{% url 'instructors' %}" style="display:inline-block; margin-top:20px;">⬅ Înapoi la listă</a>
+    <h2 class="section-title">📅 Clasele predate de {{ instructor.first_name }}</h2>
+    <div class="grid">
+        {% for class in classes %}
+            <a href="{% url 'class_detail' class.id %}">
+                <div class="card">
+                    <h3>{{ class.name }}</h3>
+                </div>
+            </a>
+            
+        {% empty %}
+            <p>Acest instructor nu are clase programate momentan.</p>
+        {% endfor %}
+    </div>
+<!-- 
+    <div class="actions" style="margin-top: 30px;">
+        <a href="{% url 'instructors' %}" class="btn-back">
+            <span class="icon">⬅</span> Înapoi la listă
+        </a>
+    </div> -->
+</div>
 {% endblock %}

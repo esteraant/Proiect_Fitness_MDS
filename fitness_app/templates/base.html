@@ -10,15 +10,16 @@
 <body>
 
     <nav class="navbar">
-        <div class="nav-brand">🎵 AlgoRhythm Gym</div>
+        <div class="nav-brand">AlgoRhythm Gym</div>
             <ul class="nav-links">
                 <li><a href="{% url 'home' %}">Acasă</a></li>
-                <li><a href="#">Program Clase</a></li>
+                <li><a href="{% url 'fitness_classes_list' %}">Program Clase</a></li>
                 <li><a href="{% url 'instructors' %}">Instructori</a></li>
                 <li><a href="#">Profil</a></li>
             </ul>
-            {% if user.role == 'ADM' %}
-                <li><a href="{% url 'admin:index' %}" style="color: #f1c40f;">Admin Panel</a></li>
+            
+            {% if user.is_staff %}
+                <li><a href="{% url 'admin_dashboard' %}" style="color: white; font-weight: bold; ">Management</a></li>
             {% endif %}
             <div class="nav-auth">
                 <span class="user-tag">{{ user.username }} ({{ user.get_role_display }})</span>
