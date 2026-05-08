@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}AlgoRhythm Gym{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'fitness_app/css/style.css' %}">
+    <meta name="keywords" content="fitness, gym, training, algorhythm, cursuri fitness">
+    <meta name="description" content="AlgoRhythm - Sala de fitness potrivita pentru antrenamente 100% personalizate.">
+    <meta name="author" content="Echipa AlgoRhythm - Antal Estera & Fintoiu Andreea">
+    <!-- Favicon-uri -->
+    <link rel="icon" type="image/png" href="{% static 'fitness_app/favicon/favicon-96x96.png' %}" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="{% static 'fitness_app/favicon/favicon.svg' %}" />
+    <link rel="shortcut icon" href="{% static 'fitness_app/favicon/favicon.ico' %}" />
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'fitness_app/favicon/apple-touch-icon.png' %}" />
+    <meta name="apple-mobile-web-app-title" content="AlgoRhythm" />
+    <link rel="manifest" href="{% static 'favicon/site.webmanifest' %}" />
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
 <body>
 
@@ -15,7 +26,7 @@
                 <li><a href="{% url 'home' %}">Acasă</a></li>
                 <li><a href="{% url 'fitness_classes_list' %}">Program Clase</a></li>
                 <li><a href="{% url 'instructors' %}">Instructori</a></li>
-                <li><a href="#">Profil</a></li>
+                <li><a href="{% url 'profile' %}">Profil</a></li>
             </ul>
             
             {% if user.is_staff %}
@@ -36,8 +47,8 @@
         <div class="footer-container">
             <div class="footer-section">
                 <h4>Contact</h4>
-                <p>📍 Str. Academiei Nr. 14</p>
-                <p>📞 0707 070 070</p>
+                <p><i class="fa-solid fa-map-location-dot"></i> Str. Academiei Nr. 14</p>
+                <p><i class="fa-solid fa-phone"></i> 0707 070 070</p>
             </div>
             <div class="footer-section">
                 <h4>Social Media</h4>

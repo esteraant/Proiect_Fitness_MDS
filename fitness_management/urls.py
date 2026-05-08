@@ -15,4 +15,7 @@ urlpatterns = [
     path('program/', views.classes_view, name='fitness_classes_list'),
     path('management/', views.admin_dashboard_view, name='admin_dashboard'),
     path('clasa/<int:class_id>/', views.class_detail_view, name='class_detail'),
+    path('profil/', views.profile_view, name='profile'),
+    path('profil/freeze/', views.freeze_subscription, name='freeze_subscription'),
+    path('rezerva/<int:class_id>/', views.book_class, name='book_class'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

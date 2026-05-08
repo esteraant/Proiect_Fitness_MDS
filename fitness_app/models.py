@@ -101,6 +101,9 @@ class FitnessClass(models.Model):
                 raise ValidationError({
                     'instructor': 'O clasă destinată exclusiv femeilor trebuie să aibă un instructor de gen feminin.'
                 })
+    name = models.CharField(max_length=100)
+    max_capacity = models.IntegerField() 
+    booked_slots = models.IntegerField() 
 
 
 # Tabelul pentru rezervari, Early Bird si Check-in

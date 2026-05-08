@@ -1,0 +1,12 @@
+1. am adaugat favicon-urile pentru diferite tipuri de ecran si meta tag-urile necesare pentru keywords si autori in fitness_app/templates/base.html.
+2. am modificat codul din fitness_management/settings.py pentru a putea accesa serverul Django.
+3. am adaugat fisierul profile.html in fitness_app/templates.
+4. am modificat fisierele views.py din fitness_app si urls.py din fitness_management pentru a avea acces la paginile de profil, login si cursuri.
+
+DE FACUT: in cate zile expira abonamentul
+DE FACUT: in profil inca o cateogrie de abonament - INGHETAREA ABONAMENTULUI
+informatii personale: tot ce completeaza cand isi deschide contul 
+in home in loc de emoji sa punem iconita
+
+           INFORMATII PERSONALE
+ OBIECTIVE                     ABONAMENTE

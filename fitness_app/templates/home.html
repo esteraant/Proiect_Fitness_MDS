@@ -3,19 +3,19 @@
 {% block content %}
 
         <div class="welcome-card">
-            <h1>Salut, {{ user.username }}! 👋</h1>
+            <h1>Salut, {{ user.username }}! <i class="fa-regular fa-hand-peace"></i></h1>
             <p>Ești gata pentru antrenamentul de astăzi?</p>
             
             <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee;">
                 <strong>Statut Abonament:</strong>
                 {% if subscription %}
                     {% if subscription.is_frozen %}
-                        <span class="status-badge status-frozen">❄️ Înghețat (Până la {{ subscription.end_date }})</span>
+                        <span class="status-badge status-frozen"><i class="fa-solid fa-snowflake"></i> Înghețat (Până la {{ subscription.end_date }})</span>
                     {% else %}
-                        <span class="status-badge status-active">✅ Activ (Expiră pe {{ subscription.end_date }})</span>
+                        <span class="status-badge status-active"><i class="fa-solid fa-check-circle"></i> Activ (Expiră pe {{ subscription.end_date }})</span>
                     {% endif %}
                 {% else %}
-                    <span class="status-badge status-none">❌ Fără abonament activ</span>
+                    <span class="status-badge status-none"><i class="fa-solid fa-times-circle"></i> Fără abonament activ</span>
                 {% endif %}
             </div>
         </div>
@@ -34,15 +34,15 @@
         <h2>Ce vrei să facem azi?</h2>
         <div class="grid">
             <div class="card">
-                <h3>📅 Rezervă o clasă</h3>
+                <h3><i class="fa-solid fa-calendar-days"></i> Rezervă o clasă</h3>
                 <p>Vezi programul de Yoga, Zumba sau Crossfit.</p>
             </div>
             <div class="card">
-                <h3>📊 Progresul meu</h3>
+                <h3><i class="fa-solid fa-chart-line"></i> Progresul meu</h3>
                 <p>Vezi frecvența săptămânală și obiectivele tale.</p>
             </div>
             <div class="card">
-                <h3>⭐ Recenzii</h3>
+                <h3><i class="fa-solid fa-star"></i> Recenzii</h3>
                 <p>Spune-ne cum a fost ultimul tău antrenament.</p>
             </div>
         </div>

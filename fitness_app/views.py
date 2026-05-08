@@ -5,6 +5,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from .models import Subscription, Booking, User, FitnessClass
 from .forms import CustomUserCreationForm
+from datetime import date
+from datetime import timedelta
+from django.contrib import messages
 
 def login_view(request):
     if request.method == 'POST':
@@ -29,18 +32,83 @@ def home_view(request):
     }
     return render(request, 'home.html', context)
 
+@login_required
+def profile_view(request):
+    subscription = Subscription.objects.filter(user=request.user).first()
+    days_left = 0
+    if subscription and subscription.end_date:
+        delta = subscription.end_date - date.today()
+        days_left = max(0, delta.days)
+    context = {
+        'subscription': subscription,
+        'days_left': days_left,
+    }
+    return render(request, 'profile.html', context)
 
+@login_required
+def freeze_subscription(request):
+    subscription = Subscription.objects.filter(user=request.user).first()
+    if subscription:
+        subscription.is_frozen = not subscription.is_frozen
+        subscription.save()
+    return redirect('profile')
+
+@login_required
+def activate_subscription(request):
+    sub, created = Subscription.objects.get_or_create(user=request.user)
+    sub.start_date = date.today()
+    sub.end_date = date.today() + timedelta(days=30) # Îi dăm 30 de zile
+    sub.is_frozen = False
+    sub.save()
+    return redirect('profile')
+
+def classes_view(request):
+    fitness_classes = FitnessClass.objects.all()
+    
+    for fc in fitness_classes:
+        fc.disponibile = fc.max_capacity - fc.booked_slots
+        
+    return render(request, 'classes.html', {'fitness_classes': fitness_classes})
+
+@login_required
+def book_class(request, class_id):
+    fitness_class = get_object_or_404(FitnessClass, id=class_id)
+    
+    if fitness_class.booked_slots >= fitness_class.max_capacity:
+        messages.error(request, "Din păcate, nu mai sunt locuri disponibile la această clasă.")
+        return redirect('fitness_classes_list')
+    subscription = Subscription.objects.filter(user=request.user).first()
+
+    if not subscription:
+        subscription = Subscription.objects.create(
+            user=request.user,
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=30),
+            is_frozen=False,
+            price=150.00,
+            plan='1M'
+        )
+        messages.info(request, "Un abonament nou a fost activat pentru tine.")
+    else:
+        if subscription.is_frozen:
+            messages.warning(request, "Abonamentul tău este înghețat. Dezgheață-l din profil!")
+            return redirect('profile')
+
+    fitness_class.booked_slots += 1
+    fitness_class.save()
+    fitness_class.refresh_from_db()
+    
+    locuri_ramase = fitness_class.max_capacity - fitness_class.booked_slots
+    
+    messages.success(request, f"Loc rezervat cu succes! (Rămase: {locuri_ramase})")
+    return redirect('fitness_classes_list')
 def instructors_view(request):
-    # Filtram utilizatorii care au rolul de instructor
     instructors = User.objects.filter(role='INS')
     return render(request, 'instructors.html', {'instructors': instructors})
 
 
 def instructor_detail_view(request, instructor_id):
-    # Cautam instructorul sau dam eroare 404 daca nu exista
     instructor = get_object_or_404(User, id=instructor_id, role='INS')
-    
-    # Cautam si clasele pe care le preda acest instructor
     classes = FitnessClass.objects.filter(instructor=instructor)
     
     context = {
@@ -54,11 +122,21 @@ def register_view(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)
+            birth_date = form.cleaned_data.get('birth_date')
+            
+            if birth_date:
+                # Calculăm vârsta exactă
+                today = date.today()
+                age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+                # setam automat campul is_child in functie de varsta calculata
+                user.is_child = (age < 18)
+            user.save()
             login(request, user) # il logam automat dupa inregistrare
             return redirect('home')
     else:
         form = CustomUserCreationForm()
+    
     return render(request, 'register.html', {'form': form})
 
 
@@ -84,5 +162,4 @@ def admin_dashboard_view(request):
         'recent_bookings': recent_bookings,
     }
     return render(request, 'admin_dashboard.html', context)
-
 

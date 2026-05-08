@@ -1,19 +1,50 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container">
-    <h2 style="text-align: center; color: #2c3e50;">Programul Claselor</h2>
+    <h2 style="text-align: center; color: #2c3e50; margin-bottom: 30px;">Programul Claselor</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div style="padding: 10px; margin-bottom: 20px; border-radius: 5px; text-align: center; 
+                background-color: {% if message.tags == 'success' %}#d4edda{% else %}#f8d7da{% endif %}; 
+                color: {% if message.tags == 'success' %}#155724{% else %}#721c24{% endif %};">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
     <div class="grid">
         {% for fc in fitness_classes %}
-        <div class="card" style="border-left: 5px solid #3498db;">
-            <h3>{{ fc.name }}</h3>
-            <p><strong>Zi:</strong> {{ fc.get_day_of_week_display }}</p>
-            <p><strong>Ora:</strong> {{ fc.start_time }}</p>
-            <p><strong>Instructor:</strong> {{ fc.instructor.first_name }}</p>
-            <a href="{% url 'class_detail' fc.id %}" class="btn-ocean">Vezi Detalii</a>
-            <a href="#" class="btn-ocean">Rezervă Loc</a>
+        <div class="card" style="border-left: 5px solid #3498db; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <h3>{{ fc.name }}</h3>
+                <p><strong>Zi:</strong> {{ fc.get_day_of_week_display }}</p>
+                <p><strong>Ora:</strong> {{ fc.start_time }}</p>
+                <p><strong>Instructor:</strong> {{ fc.instructor.first_name }}</p>
+                
+                <p><strong>Locuri disponibile:</strong> 
+                    <span style="font-weight: bold; color: {% if fc.disponibile > 0 %}#2ecc71{% else %}#e74c3c{% endif %};">
+                        {{ fc.disponibile|default:"0" }}
+                    </span> / {{ fc.max_capacity }}
+                </p>
+            </div>
+
+            <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px;">
+                <a href="{% url 'class_detail' fc.id %}" class="btn-ocean">Vezi Detalii</a>
+                
+                {% if fc.disponibile > 0 %}
+                    <a href="{% url 'book_class' fc.id %}" class="btn-ocean" style="background-color: #27ae60; border: none; text-align: center; text-decoration: none;">
+                        Rezervă Loc
+                    </a>
+                {% else %}
+                    <p style="color: #e74c3c; font-weight: bold; text-align: center; margin: 10px 0;">
+                        Ne pare rău, nu mai sunt locuri!
+                    </p>
+                {% endif %} 
+            </div>
         </div>
         {% empty %}
-        <p>Momentan nu sunt clase programate.</p>
+        <p style="text-align: center; width: 100%;">Momentan nu sunt clase programate.</p>
         {% endfor %}
     </div>
 </div>
