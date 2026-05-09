@@ -10,10 +10,10 @@
     <meta name="description" content="AlgoRhythm - Sala de fitness potrivita pentru antrenamente 100% personalizate.">
     <meta name="author" content="Echipa AlgoRhythm - Antal Estera & Fintoiu Andreea">
     <!-- Favicon-uri -->
-    <link rel="icon" type="image/png" href="{% static 'fitness_app/favicon/favicon-96x96.png' %}" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="{% static 'fitness_app/favicon/favicon.svg' %}" />
-    <link rel="shortcut icon" href="{% static 'fitness_app/favicon/favicon.ico' %}" />
-    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'fitness_app/favicon/apple-touch-icon.png' %}" />
+    <link rel="icon" type="image/png" href="{% static 'favicon/favicon-96x96.png' %}" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="{% static 'favicon/favicon.svg' %}" />
+    <link rel="shortcut icon" href="{% static 'favicon/favicon.ico' %}" />
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'favicon/apple-touch-icon.png' %}" />
     <meta name="apple-mobile-web-app-title" content="AlgoRhythm" />
     <link rel="manifest" href="{% static 'favicon/site.webmanifest' %}" />
      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -34,7 +34,7 @@
             {% endif %}
             <div class="nav-auth">
                 <span class="user-tag">{{ user.username }} ({{ user.get_role_display }})</span>
-                <a href="{% url 'login' %}" class="btn-logout">Logout</a>
+                <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
             </div>
     </nav>
 

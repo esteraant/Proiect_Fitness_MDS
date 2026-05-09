@@ -83,11 +83,10 @@ class FitnessClass(models.Model):
 
     # ne asiguram ca putem alege doar instructorii cand cream o clasa
     max_capacity = models.PositiveIntegerField()
+    @property
     def available_spots(self):
         return self.max_capacity - self.booking_set.count()
     
-    is_for_women_only = models.BooleanField(default=False)
-    is_for_children = models.BooleanField(default=False)
     start_time = models.DateTimeField()
 
     def __str__(self):
@@ -101,9 +100,9 @@ class FitnessClass(models.Model):
                 raise ValidationError({
                     'instructor': 'O clasă destinată exclusiv femeilor trebuie să aibă un instructor de gen feminin.'
                 })
-    name = models.CharField(max_length=100)
-    max_capacity = models.IntegerField() 
-    booked_slots = models.IntegerField() 
+    # name = models.CharField(max_length=100)
+    # max_capacity = models.IntegerField() 
+    # booked_slots = models.IntegerField() 
 
 
 # Tabelul pentru rezervari, Early Bird si Check-in

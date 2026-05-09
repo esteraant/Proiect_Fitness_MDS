@@ -23,8 +23,8 @@
                 <p><strong>Instructor:</strong> {{ fc.instructor.first_name }}</p>
                 
                 <p><strong>Locuri disponibile:</strong> 
-                    <span style="font-weight: bold; color: {% if fc.disponibile > 0 %}#2ecc71{% else %}#e74c3c{% endif %};">
-                        {{ fc.disponibile|default:"0" }}
+                    <span style="font-weight: bold; color: {% if fc.available_spots > 0 %}#2ecc71{% else %}#e74c3c{% endif %};">
+                        {{ fc.available_spots }}
                     </span> / {{ fc.max_capacity }}
                 </p>
             </div>
@@ -32,7 +32,7 @@
             <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px;">
                 <a href="{% url 'class_detail' fc.id %}" class="btn-ocean">Vezi Detalii</a>
                 
-                {% if fc.disponibile > 0 %}
+                {% if fc.available_spots > 0 %}
                     <a href="{% url 'book_class' fc.id %}" class="btn-ocean" style="background-color: #27ae60; border: none; text-align: center; text-decoration: none;">
                         Rezervă Loc
                     </a>

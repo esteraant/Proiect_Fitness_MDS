@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import AuthenticationForm
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from .models import Subscription, Booking, User, FitnessClass
@@ -62,21 +62,28 @@ def activate_subscription(request):
     sub.save()
     return redirect('profile')
 
-def classes_view(request):
-    fitness_classes = FitnessClass.objects.all()
+# def classes_view(request):
+#     fitness_classes = FitnessClass.objects.all()
     
-    for fc in fitness_classes:
-        fc.disponibile = fc.max_capacity - fc.booked_slots
+#     for fc in fitness_classes:
+#         fc.disponibile = fc.max_capacity - fc.booked_slots
         
-    return render(request, 'classes.html', {'fitness_classes': fitness_classes})
+#     return render(request, 'classes.html', {'fitness_classes': fitness_classes})
 
 @login_required
 def book_class(request, class_id):
     fitness_class = get_object_or_404(FitnessClass, id=class_id)
     
-    if fitness_class.booked_slots >= fitness_class.max_capacity:
+    if fitness_class.available_spots <= 0:
         messages.error(request, "Din păcate, nu mai sunt locuri disponibile la această clasă.")
         return redirect('fitness_classes_list')
+    
+    # verificam sa nu fie deja inscris
+    already_booked = Booking.objects.filter(user=request.user, fitness_class=fitness_class).exists()
+    if already_booked:
+        messages.warning(request, "Ești deja înscris la această clasă!")
+        return redirect('fitness_classes_list')
+    
     subscription = Subscription.objects.filter(user=request.user).first()
 
     if not subscription:
@@ -94,14 +101,17 @@ def book_class(request, class_id):
             messages.warning(request, "Abonamentul tău este înghețat. Dezgheață-l din profil!")
             return redirect('profile')
 
-    fitness_class.booked_slots += 1
-    fitness_class.save()
-    fitness_class.refresh_from_db()
     
-    locuri_ramase = fitness_class.max_capacity - fitness_class.booked_slots
+    Booking.objects.create(
+        user=request.user,
+        fitness_class=fitness_class
+    )
+    locuri_ramase = fitness_class.available_spots
     
     messages.success(request, f"Loc rezervat cu succes! (Rămase: {locuri_ramase})")
     return redirect('fitness_classes_list')
+
+
 def instructors_view(request):
     instructors = User.objects.filter(role='INS')
     return render(request, 'instructors.html', {'instructors': instructors})
@@ -163,3 +173,12 @@ def admin_dashboard_view(request):
     }
     return render(request, 'admin_dashboard.html', context)
 
+def index_view(request):
+    # daca utilizatorul este deja logat, il trimitem direct la pagina de home
+    if request.user.is_authenticated:
+        return redirect('home')
+    return render(request, 'index.html')
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')

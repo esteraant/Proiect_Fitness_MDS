@@ -8,7 +8,12 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('login/', views.login_view, name='login'),
-    path('', views.home_view, name='home'),
+    path('logout/', views.logout_view, name='logout'),
+
+    # path('', views.home_view, name='home'),
+    path('', views.index_view, name='index'), 
+    path('acasa/', views.home_view, name='home'),
+
     path('instructori/', views.instructors_view, name='instructors'),
     path('instructori/<int:instructor_id>/', views.instructor_detail_view, name='instructor_detail'),
     path('register/', views.register_view, name='register'),
@@ -18,4 +23,5 @@ urlpatterns = [
     path('profil/', views.profile_view, name='profile'),
     path('profil/freeze/', views.freeze_subscription, name='freeze_subscription'),
     path('rezerva/<int:class_id>/', views.book_class, name='book_class'),
+    
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
