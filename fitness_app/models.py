@@ -102,7 +102,7 @@ class FitnessClass(models.Model):
                 })
     # name = models.CharField(max_length=100)
     # max_capacity = models.IntegerField() 
-    # booked_slots = models.IntegerField() 
+    # booked_slots = models.IntegerField(default=0) 
 
 
 # Tabelul pentru rezervari, Early Bird si Check-in

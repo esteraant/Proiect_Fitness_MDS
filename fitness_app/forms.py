@@ -2,6 +2,9 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import User
 from django.contrib.auth import get_user_model
+from .models import Review
+
+
 
 User = get_user_model()
 
@@ -27,3 +30,12 @@ class CustomUserCreationForm(UserCreationForm):
             'fitness_goal',
             'frequency_per_week'
         )
+
+class ReviewForm(forms.ModelForm):
+    class Meta:
+        model = Review
+        fields = ['rating', 'comment']
+        widgets = {
+            'rating': forms.Select(attrs={'class': 'form-control'}),
+            'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Cum a fost antrenamentul?'}),
+        }

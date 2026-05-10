@@ -23,5 +23,8 @@ urlpatterns = [
     path('profil/', views.profile_view, name='profile'),
     path('profil/freeze/', views.freeze_subscription, name='freeze_subscription'),
     path('rezerva/<int:class_id>/', views.book_class, name='book_class'),
+    path('recenzii/', views.reviews_list_view, name='reviews_list'),
+    path('recenzii/adauga/<int:class_id>/', views.add_review_view, name='add_review'),
+    path('program/', views.classes_view, name='fitness_classes_list')
     
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,51 +1,65 @@
-{% extends 'base.html' %} 
+{% extends 'base.html' %}
 {% block title %}Home - AlgoRhythm Gym{% endblock %}
 {% block content %}
 
-        <div class="welcome-card">
-            <h1>Salut, {{ user.username }}! <i class="fa-regular fa-hand-peace"></i></h1>
-            <p>Ești gata pentru antrenamentul de astăzi?</p>
-            
-            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee;">
-                <strong>Statut Abonament:</strong>
-                {% if subscription %}
-                    {% if subscription.is_frozen %}
-                        <span class="status-badge status-frozen"><i class="fa-solid fa-snowflake"></i> Înghețat (Până la {{ subscription.end_date }})</span>
-                    {% else %}
-                        <span class="status-badge status-active"><i class="fa-solid fa-check-circle"></i> Activ (Expiră pe {{ subscription.end_date }})</span>
-                    {% endif %}
-                {% else %}
-                    <span class="status-badge status-none"><i class="fa-solid fa-times-circle"></i> Fără abonament activ</span>
-                {% endif %}
-            </div>
-        </div>
+<div class="welcome-card">
+    <h1>Salut, {{ user.username }}! <i class="fa-regular fa-hand-peace"></i></h1>
+    <p>Ești gata pentru antrenamentul de astăzi?</p>
 
-        <div class="grid" style="margin-bottom: 2rem;">
-            <div class="card" style="border-bottom: 4px solid #1f5b97;">
-                <h4 style="margin:0; color: #7f8c8d;">Antrenamente efectuate</h4>
-                <h2 style="margin: 10px 0;">{{ attended_count }}</h2>
-            </div>
-            <div class="card" style="border-bottom: 4px solid #4d6c8a;">
-                <h4 style="margin:0; color: #7f8c8d;">Obiectiv Săptămânal</h4>
-                <h2 style="margin: 10px 0;">{{ user.frequency_per_week }} ședințe</h2>
-            </div>
-        </div>
-
-        <h2>Ce vrei să facem azi?</h2>
-        <div class="grid">
-            <div class="card">
-                <h3><i class="fa-solid fa-calendar-days"></i> Rezervă o clasă</h3>
-                <p>Vezi programul de Yoga, Zumba sau Crossfit.</p>
-            </div>
-            <div class="card">
-                <h3><i class="fa-solid fa-chart-line"></i> Progresul meu</h3>
-                <p>Vezi frecvența săptămânală și obiectivele tale.</p>
-            </div>
-            <div class="card">
-                <h3><i class="fa-solid fa-star"></i> Recenzii</h3>
-                <p>Spune-ne cum a fost ultimul tău antrenament.</p>
-            </div>
-        </div>
+    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee;">
+        <strong>Statut Abonament:</strong>
+        {% if subscription %}
+        {% if subscription.is_frozen %}
+        <span class="status-badge status-frozen">
+            <i class="fa-solid fa-snowflake"></i> Înghețat (Până la {{ subscription.end_date }})
+        </span>
+        {% else %}
+        <span class="status-badge status-active">
+            <i class="fa-solid fa-check-circle"></i> Activ (Expiră pe {{ subscription.end_date }})
+        </span>
+        {% endif %}
+        {% else %}
+        <span class="status-badge status-none">
+            <i class="fa-solid fa-times-circle"></i> Fără abonament activ
+        </span>
+        {% endif %}
     </div>
+</div>
+
+<div class="grid" style="margin-bottom: 2rem;">
+    <div class="card" style="border-bottom: 4px solid #1f5b97;">
+        <h4 style="margin:0; color: #7f8c8d;">Antrenamente efectuate</h4>
+        <h2 style="margin: 10px 0;">{{ attended_count }}</h2>
+    </div>
+    <div class="card" style="border-bottom: 4px solid #4d6c8a;">
+        <h4 style="margin:0; color: #7f8c8d;">Obiectiv Săptămânal</h4>
+        <h2 style="margin: 10px 0;">{{ user.frequency_per_week }} ședințe</h2>
+    </div>
+</div>
+
+<h2>Ce vrei să facem azi?</h2>
+<div class="grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch;">
+
+    <a href="{% url 'fitness_classes_list' %}" style="text-decoration: none; color: inherit; display: block;">
+        <div class="card">
+            <h3><i class="fa-solid fa-calendar-days"></i> Rezervă o clasă</h3>
+            <p>Vezi programul de Yoga, Zumba sau Crossfit.</p>
+        </div>
+    </a>
+
+    <a href="{% url 'profile' %}" style="text-decoration: none; color: inherit; display: block;">
+        <div class="card">
+            <h3><i class="fa-solid fa-chart-line"></i> Progresul meu</h3>
+            <p>Vezi frecvența săptămânală și obiectivele tale.</p>
+        </div>
+    </a>
+
+    <a href="{% url 'reviews_list' %}" style="text-decoration: none; color: inherit; display: block;">
+        <div class="card">
+            <h3><i class="fa-solid fa-star"></i> Recenzii</h3>
+            <p>Spune-ne cum a fost ultimul tău antrenament.</p>
+        </div>
+    </a>
+</div>
 
 {% endblock %}

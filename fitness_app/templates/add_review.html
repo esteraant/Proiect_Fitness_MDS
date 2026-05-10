@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" style="max-width: 600px; margin-top: 50px;">
+    <div class="card">
+        <h2>Lasă o recenzie pentru {{ fitness_class.name }}</h2>
+        <p>Instructor: {{ fitness_class.instructor.get_full_name }}</p>
+        <hr>
+        <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label>Notă (1-5):</label>
+                {{ form.rating }}
+            </div>
+            <div class="mb-3">
+                <label>Comentariu:</label>
+                {{ form.comment }}
+            </div>
+            <button type="submit" class="btn-ocean" style="width: 100%; border: none; margin-top: 20px;">Trimite Recenzia</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

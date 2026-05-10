@@ -8,6 +8,9 @@ from .forms import CustomUserCreationForm
 from datetime import date
 from datetime import timedelta
 from django.contrib import messages
+from .forms import ReviewForm
+from .models import Review
+from django.utils import timezone
 
 def login_view(request):
     if request.method == 'POST':
@@ -69,6 +72,38 @@ def activate_subscription(request):
 #         fc.disponibile = fc.max_capacity - fc.booked_slots
         
 #     return render(request, 'classes.html', {'fitness_classes': fitness_classes})
+
+@login_required
+def reviews_list_view(request):
+    # cautam clasele la care utilizatorul a participat 
+    bookings_attended = Booking.objects.filter(user=request.user, attended=True)
+    classes_to_review = []
+    for b in bookings_attended:
+        if not Review.objects.filter(user=request.user, fitness_class=b.fitness_class).exists():
+            classes_to_review.append(b.fitness_class)
+    return render(request, 'reviews_list.html', {'classes_to_review': classes_to_review})
+
+@login_required
+def add_review_view(request, class_id):
+    fitness_class = get_object_or_404(FitnessClass, id=class_id)
+    
+    # verificam daca utilizatorul a participat la clasa respectiva
+    has_attended = Booking.objects.filter(user=request.user, fitness_class=fitness_class, attended=True).exists()
+    if not has_attended:
+        messages.error(request, "Poți lăsa recenzii doar pentru clasele la care ai participat fizic.")
+        return redirect('reviews_list')
+    if request.method == 'POST':
+        form = ReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.user = request.user
+            review.fitness_class = fitness_class
+            review.save()
+            messages.success(request, f"Recenzia pentru {fitness_class.name} a fost trimisă!")
+            return redirect('home')
+    else:
+        form = ReviewForm()
+    return render(request, 'add_review.html', {'form': form, 'fitness_class': fitness_class})
 
 @login_required
 def book_class(request, class_id):
@@ -151,7 +186,8 @@ def register_view(request):
 
 
 def classes_view(request):
-    fitness_classes = FitnessClass.objects.all()
+    now = timezone.now()
+    fitness_classes = FitnessClass.objects.filter(start_time__gte=now).order_by('start_time')
     return render(request, 'classes.html', {'fitness_classes': fitness_classes})
 
 def class_detail_view(request, class_id):

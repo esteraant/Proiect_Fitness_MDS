@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="margin-top: 50px;">
+    <h2 style="text-align: center; margin-bottom: 30px;">Clasele tale de evaluat</h2>
+    <p style="text-align: center; color: #7f8c8d;">Aici apar doar clasele la care ai fost prezent și nu ai lăsat încă o recenzie.</p>
+
+    <div class="grid" style="margin-top: 30px;">
+        {% for fitness_class in classes_to_review %}
+            <div class="card" style="border-left: 5px solid #1f5b97;">
+                <h3>{{ fitness_class.name }}</h3>
+                <p><strong><i class="fa-solid fa-user-tie"></i> Instructor:</strong> {{ fitness_class.instructor.get_full_name }}</p>
+                <p><strong><i class="fa-solid fa-calendar-check"></i> Data:</strong> {{ fitness_class.start_time|date:"d M Y" }}</p>
+                
+                <div style="margin-top: 20px;">
+                    <a href="{% url 'add_review' fitness_class.id %}" class="btn-ocean" style="display: block; text-align: center; border: none; font-weight: bold;">
+                        Lasă Recenzie
+                    </a>
+                </div>
+            </div>
+        {% empty %}
+            <div style="grid-column: 1 / -1; text-align: center; padding: 50px;">
+                <i class="fa-solid fa-circle-info" style="font-size: 50px; color: #bdc3c7; margin-bottom: 20px;"></i>
+                <p>Nu ai nicio clasă nouă de evaluat momentan.</p>
+                <a href="{% url 'home' %}" class="btn-ocean">Înapoi la Panou</a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
