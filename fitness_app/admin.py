@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Subscription, FitnessClass, Booking, Review, InstructorReview, FAQ, ChatMessage, Notification
+from .models import User, Subscription, FitnessClass, Booking, Review, InstructorReview, FAQ, ChatMessage, Notification, Room, GymSession
 
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
@@ -27,3 +27,5 @@ admin.site.register(InstructorReview)
 admin.site.register(FAQ)
 admin.site.register(ChatMessage)
 admin.site.register(Notification)
+admin.site.register(Room)
+admin.site.register(GymSession)

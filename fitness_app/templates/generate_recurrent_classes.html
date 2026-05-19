@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 700px;">
+    <div class="welcome-card" style="padding: 30px;">
+        <h2 style="color: #2c3e50; text-align: center; margin-bottom: 25px;">Generator Programe Recurente</h2>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div style="padding: 10px; margin-bottom: 20px; border-radius: 5px; text-align: center; 
+                    background-color: {% if message.tags == 'success' %}#d4edda{% else %}#f8d7da{% endif %}; 
+                    color: {% if message.tags == 'success' %}#155724{% else %}#721c24{% endif %};">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div style="display: flex; gap: 20px; margin-bottom: 15px;">
+                <div style="flex: 1;">
+                    <label style="font-weight: 600; display:block; margin-bottom: 5px;">Nume Clasă:</label>
+                    <input type="text" name="name" required style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-weight: 600; display:block; margin-bottom: 5px;">Tip Clasă:</label>
+                    <select name="type" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
+                        <option value="GRP">Grup</option>
+                        <option value="1TO1">Personal Training (1 la 1)</option>
+                        <option value="IND">Individual (Fără antrenor)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 20px; margin-bottom: 15px;">
+                <div style="flex: 1;">
+                    <label style="font-weight: 600; display:block; margin-bottom: 5px;">Antrenor:</label>
+                    <select name="instructor" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
+                        <option value="">Fără Antrenor</option>
+                        {% for inst in instructors %}
+                            <option value="{{ inst.id }}">{{ inst.first_name }} {{ inst.last_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-weight: 600; display:block; margin-bottom: 5px;">Preț (RON):</label>
+                    <input type="number" step="0.01" name="price" value="30.00" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 20px; margin-bottom: 15px;">
+                <div style="flex: 1;">
+                    <label style="font-weight: 600; display:block; margin-bottom: 5px;">Capacitate Maximă:</label>
+                    <input type="number" name="max_capacity" value="15" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-weight: 600; display:block; margin-bottom: 5px;">Durată (minute):</label>
+                    <input type="number" name="duration_minutes" value="60" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <div style="flex: 1;">
+                    <label style="font-weight: 600; display:block; margin-bottom: 5px;">De la data:</label>
+                    <input type="date" name="start_date" required style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-weight: 600; display:block; margin-bottom: 5px;">Până la data:</label>
+                    <input type="date" name="end_date" required style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-weight: 600; display:block; margin-bottom: 5px;">Ora clasei:</label>
+                    <input type="time" name="class_time" required style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: 600; display:block; margin-bottom: 10px;">Zilele în care se organizează clasa:</label>
+                <div style="display: flex; flex-wrap: wrap; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 8px;">
+                    <label><input type="checkbox" name="days_of_week" value="0"> Luni</label>
+                    <label><input type="checkbox" name="days_of_week" value="1"> Marți</label>
+                    <label><input type="checkbox" name="days_of_week" value="2"> Miercuri</label>
+                    <label><input type="checkbox" name="days_of_week" value="3"> Joi</label>
+                    <label><input type="checkbox" name="days_of_week" value="4"> Vineri</label>
+                    <label><input type="checkbox" name="days_of_week" value="5"> Sâmbătă</label>
+                    <label><input type="checkbox" name="days_of_week" value="6"> Duminică</label>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 30px; margin-bottom: 25px;">
+                <label><input type="checkbox" name="is_for_women_only"> Doar pentru Femei</label>
+                <label><input type="checkbox" name="is_for_children"> Clasă pentru Copii</label>
+            </div>
+
+            <div style="display: flex; gap: 15px; justify-content: flex-end;">
+                <a href="{% url 'admin_dashboard' %}" class="btn-back" style="margin-top: 0; background: #7f8c8d;">Anulează</a>
+                <button type="submit" class="btn-ocean" style="border: none; cursor: pointer; padding: 10px 30px;">Generează Programul</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

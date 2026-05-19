@@ -12,15 +12,11 @@
 
         <div class="class-info-grid">
             <div class="info-item">
-                <strong>Ora de start:</strong> 
-                <span>{{ fitness_class.start_time|date:"H:i" }} ({{ fitness_class.duration_minutes }} min)</span>
+                <strong>Durată curs:</strong> 
+                <span>{{ fitness_class.duration_minutes }} min</span>
             </div>
             <div class="info-item">
-                <strong>Capacitate:</strong> 
-                <span>{{ fitness_class.available_spots }} locuri libere / {{ fitness_class.max_capacity }}</span>
-            </div>
-            <div class="info-item">
-                <strong>Preț:</strong> 
+                <strong>Preț per ședință:</strong> 
                 <span class="price-tag">{{ fitness_class.price }} RON</span>
             </div>
         </div>
@@ -39,6 +35,43 @@
                 <p class="instructor-label">Antrenor: <strong>{{ fitness_class.instructor.first_name }}</strong></p>
             </a>
         </div>
+
+        <h3 style="color: #2c3e50; margin-top: 35px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px;">
+            Calendar Ședințe Disponibile
+        </h3>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+            {% for session in sessions %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+                    <div>
+                        <span style="font-weight: bold; color: #2c3e50; font-size: 1.05rem;">
+                            {{ session.start_time|date:"l, d F Y" }} — Ora {{ session.start_time|date:"H:i" }}
+                        </span>
+                        <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 2px;">
+                            Locuri libere: 
+                            <span style="font-weight: bold; color: {% if session.available_spots > 0 %}#2ecc71{% else %}#e74c3c{% endif %};">
+                                {{ session.available_spots }}
+                            </span> / {{ session.max_capacity }}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        {% if session.available_spots > 0 %}
+                            <a href="{% url 'book_class' session.id %}" class="btn-ocean" style="background-color: #27ae60; color: white; padding: 8px 18px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 0.85rem; display: inline-block;">
+                                Rezervă Loc
+                            </a>
+                        {% else %}
+                            <span style="color: #e74c3c; font-weight: bold; font-size: 0.85rem; background: #fdedec; padding: 5px 10px; border-radius: 4px; display: inline-block;">
+                                Sală Plină
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% empty %}
+                <p style="color: #7f8c8d; text-align: center;">Nu mai sunt ședințe programate pentru această clasă.</p>
+            {% endfor %}
+        </div>
+
     </div>
 
     <div class="navigation-actions">

@@ -37,6 +37,90 @@
     </div>
 </div>
 
+<!-- GRADE DE OCUPARE -->
+<div class="occupancy-section">
+    <h3><i class="fa-solid fa-chart-bar"></i> Grad de Ocupare Săli</h3>
+    
+    <!-- Sala Mare -->
+    {% if sala_mare %}
+    <div class="occupancy-card">
+        <div class="occupancy-header">
+            <span class="room-name">{{ sala_mare.name }}</span>
+            <span class="occupancy-pct {% if ocupare_sala_mare >= 80 %}pct-red{% elif ocupare_sala_mare >= 50 %}pct-orange{% else %}pct-green{% endif %}">
+                {{ ocupare_sala_mare }}%
+            </span>
+        </div>
+        <div class="progress-bar-track">
+            <div class="progress-bar-fill 
+                {% if ocupare_sala_mare >= 80 %}fill-red
+                {% elif ocupare_sala_mare >= 50 %}fill-orange
+                {% else %}fill-green{% endif %}"
+                style="width: {{ ocupare_sala_mare }}%;">
+            </div>
+        </div>
+        <small>{{ locuri_libere_gym }} locuri libere din {{ sala_mare.capacity }}</small>
+    </div>
+    {% endif %}
+
+    <!-- Sali de Grup -->
+    {% for sala in sali_info %}
+    <div class="occupancy-card">
+        <div class="occupancy-header">
+            <span class="room-name">
+                {{ sala.nume }}
+                {% if sala.clasa %}
+                    <span class="class-badge">{{ sala.clasa }}</span>
+                {% else %}
+                    <span class="class-badge badge-free">Liberă</span>
+                {% endif %}
+            </span>
+            <span class="occupancy-pct {% if sala.ocupare >= 80 %}pct-red{% elif sala.ocupare >= 50 %}pct-orange{% else %}pct-green{% endif %}">
+                {{ sala.ocupare }}%
+            </span>
+        </div>
+        <div class="progress-bar-track">
+            <div class="progress-bar-fill
+                {% if sala.ocupare >= 80 %}fill-red
+                {% elif sala.ocupare >= 50 %}fill-orange
+                {% else %}fill-green{% endif %}"
+                style="width: {{ sala.ocupare }}%;">
+            </div>
+        </div>
+        <small>{{ sala.locuri_libere }} locuri libere din {{ sala.max }}</small>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- AI DASHBOARD -->
+<div class="ai-dashboard-card">
+    <h3 class="ai-dashboard-title">
+        <i class="fa-solid fa-robot"></i> Asistent Virtual AlgoRhythm AI
+    </h3>
+    <div class="ai-dashboard-container">
+        <div class="ai-card-info">
+            <p class="prediction-text">
+                <span class="ai-badge ai-badge-blue">PREDICȚIE TRAFIC</span>
+                {{ ai_occupancy_prompt }}
+            </p>
+        </div>
+        <div class="ai-card-info">
+            <p>
+                <span class="ai-badge ai-badge-green">RECOMANDARE</span>
+                {{ ai_recommendation }}
+            </p>
+        </div>
+        {% if show_freeze_reminder %}
+        <div class="ai-card-warning">
+            <p>{{ ai_freeze_prompt }}</p>
+            <div class="ai-warning-actions">
+                <a href="{% url 'profile' %}" class="ai-link-warning">Mergi la Profil pentru înghețare</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+
 <h2>Ce vrei să facem azi?</h2>
 <div class="grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch;">
 

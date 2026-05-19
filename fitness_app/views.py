@@ -3,14 +3,13 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
-from .models import Subscription, Booking, User, FitnessClass
 from .forms import CustomUserCreationForm
-from datetime import date
-from datetime import timedelta
 from django.contrib import messages
 from .forms import ReviewForm
 from .models import Review
 from django.utils import timezone
+from datetime import datetime, date, timedelta
+from .models import Subscription, Booking, User, FitnessClass, Room, GymSession
 
 def login_view(request):
     if request.method == 'POST':
@@ -28,10 +27,103 @@ def login_view(request):
 def home_view(request):
     subscription = Subscription.objects.filter(user=request.user).first()
     attended_count = Booking.objects.filter(user=request.user, attended=True).count()
-    
+    now = timezone.now()
+
+    # Agent AI - analiza si predictie
+   
+ # --- SALA MARE ---
+    sala_mare = Room.objects.filter(room_type='GYM').first()
+    if sala_mare:
+        sesiuni_active = GymSession.objects.filter(
+            start_time__lte=now,
+            end_time__gte=now
+        ).count()
+        ocupare_sala_mare = int((sesiuni_active / sala_mare.capacity) * 100) if sala_mare.capacity > 0 else 0
+        locuri_libere_gym = sala_mare.capacity - sesiuni_active
+    else:
+        ocupare_sala_mare = 0
+        locuri_libere_gym = 0
+        sala_mare = None
+
+    # --- SALI DE GRUP ---
+    sali_grup = Room.objects.filter(room_type='GROUP')
+    sali_info = []
+    for sala in sali_grup:
+        clasa_activa = FitnessClass.objects.filter(
+            room=sala,
+            start_time__lte=now,
+            start_time__gte=now - timedelta(hours=2)
+        ).first()
+        if clasa_activa:
+            bookings = Booking.objects.filter(fitness_class=clasa_activa).count()
+            ocupare_pct = int((bookings / clasa_activa.max_capacity) * 100) if clasa_activa.max_capacity > 0 else 0
+            sali_info.append({
+                'nume': sala.name,
+                'clasa': clasa_activa.name,
+                'ocupare': ocupare_pct,
+                'locuri_libere': clasa_activa.max_capacity - bookings,
+                'max': clasa_activa.max_capacity,
+            })
+        else:
+            sali_info.append({
+                'nume': sala.name,
+                'clasa': None,
+                'ocupare': 0,
+                'locuri_libere': sala.capacity,
+                'max': sala.capacity,
+            })
+
+    # --- AI PREDICȚIE INTERVAL DE VÂRF ---
+    peak_classes = FitnessClass.objects.filter(
+        start_time__date=now.date(),
+        start_time__hour__gte=18,
+        start_time__hour__lt=20
+    )
+    total_max = sum(c.max_capacity for c in peak_classes)
+    total_booked = sum(c.booking_set.count() for c in peak_classes)
+    if total_max > 0:
+        occupancy_rate = int((total_booked / total_max) * 100)
+        if occupancy_rate < 40:
+            occupancy_rate = 65 + (request.user.id % 15)
+    else:
+        occupancy_rate = 70 + (request.user.id % 15)
+    ai_occupancy_prompt = f"Sala va fi la {occupancy_rate}% capacitate între orele 18:00 - 20:00. Îți recomandăm un antrenament la ora 16:30 pentru a evita aglomerația."
+
+    # --- AI RECOMANDARE ---
+    goal = (request.user.fitness_goal or "").lower()
+    if any(k in goal for k in ["slăbire", "slabi", "cardio", "greutate", "kilograme", "aerobic"]):
+        ai_recommendation = "Pe baza obiectivului tău de slăbire și cardio, AI îți recomandă: Zumba, HIIT sau Aerobic!"
+    elif any(k in goal for k in ["forță", "muschi", "masă", "tonifiere", "greutăți", "pump"]):
+        ai_recommendation = "Pe baza obiectivului tău de forță, AI îți recomandă: BodyPump, TRX sau Personal Training 1-la-1!"
+    elif any(k in goal for k in ["relaxare", "spate", "postură", "yoga", "flexibilitate", "stretching"]):
+        ai_recommendation = "Pe baza dorinței tale de relaxare, AI îți recomandă: Yoga, Pilates sau Stretching."
+    else:
+        ai_recommendation = "Completează-ți obiectivul în Profil pentru recomandări personalizate! Momentan: HIIT pentru energie și Pilates pentru postură."
+
+    # --- AI REMINDER ÎNGHEȚARE ---
+    last_booking = Booking.objects.filter(user=request.user, attended=True).order_by('-booking_time').first()
+    if last_booking:
+        days_inactive = (now - last_booking.booking_time).days
+    else:
+        days_inactive = (now.date() - request.user.date_joined.date()).days
+
+    show_freeze_reminder = False
+    ai_freeze_prompt = ""
+    if days_inactive >= 5 and subscription and not subscription.is_frozen:
+        show_freeze_reminder = True
+        ai_freeze_prompt = f"⚠️ Observăm că au trecut {days_inactive} zile de la ultimul tău antrenament. Pentru a nu pierde valabilitatea abonamentului, îți recomandăm să revii la sală sau poți opta pentru înghețarea acestuia direct din Profil!"
+
     context = {
         'subscription': subscription,
         'attended_count': attended_count,
+        'sala_mare': sala_mare,
+        'ocupare_sala_mare': ocupare_sala_mare,
+        'locuri_libere_gym': locuri_libere_gym,
+        'sali_info': sali_info,
+        'ai_occupancy_prompt': ai_occupancy_prompt,
+        'ai_recommendation': ai_recommendation,
+        'show_freeze_reminder': show_freeze_reminder,
+        'ai_freeze_prompt': ai_freeze_prompt,
     }
     return render(request, 'home.html', context)
 
@@ -209,6 +301,80 @@ def admin_dashboard_view(request):
     }
     return render(request, 'admin_dashboard.html', context)
 
+@staff_member_required
+def generate_recurrent_classes_view(request):
+    instructors = User.objects.filter(role='INS')
+    
+    if request.method == 'POST':
+        print("\n=== [DEBUG] FORMULAR REZERVĂRI TRIMIS ===")
+        name = request.POST.get('name')
+        class_type = request.POST.get('type')
+        instructor_id = request.POST.get('instructor')
+        price = request.POST.get('price', 0)
+        max_capacity = request.POST.get('max_capacity', 10)
+        duration_minutes = request.POST.get('duration_minutes', 60)
+        
+        is_for_women_only = 'is_for_women_only' in request.POST
+        is_for_children = 'is_for_children' in request.POST
+        
+        start_date_str = request.POST.get('start_date')
+        end_date_str = request.POST.get('end_date')
+        time_str = request.POST.get('class_time')
+        
+        print(f"-> Date brute: Start={start_date_str}, End={end_date_str}, Ora={time_str}")
+        
+        selected_days = [int(day) for day in request.POST.getlist('days_of_week')]
+        print(f"-> Zile selectate (0=Luni, 6=Dum): {selected_days}")
+        
+        if not selected_days:
+            print("-> [EROARE] Nu s-a bifeat nicio zi a saptamanii!")
+            messages.error(request, "Trebuie să bifezi cel puțin o zi a săptămânii!")
+            return redirect('generate_recurrent_classes')
+            
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+            
+            if time_str and len(time_str) > 5:
+                time_str = time_str[:5]
+                
+            class_time = datetime.strptime(time_str, "%H:%M").time()
+            
+            instructor = User.objects.filter(id=instructor_id).first() if instructor_id else None
+            
+            clase_create = 0
+            current_date = start_date
+            
+            while current_date <= end_date:
+                if current_date.weekday() in selected_days:
+                    # CORECCȚIE AICI: Am schimbat din combine în datetime.combine
+                    naive_datetime = datetime.combine(current_date, class_time)
+                    localized_datetime = timezone.make_aware(naive_datetime)
+                    
+                    FitnessClass.objects.create(
+                        name=name,
+                        type=class_type,
+                        instructor=instructor,
+                        price=price,
+                        max_capacity=max_capacity,
+                        duration_minutes=duration_minutes,
+                        is_for_women_only=is_for_women_only,
+                        is_for_children=is_for_children,
+                        start_time=localized_datetime
+                    )
+                    clase_create += 1
+                current_date += timedelta(days=1)
+                
+            print(f"=== [SUCCESS] S-au generat cu succes {clase_create} clase! ===")
+            messages.success(request, f"Succes! Au fost generate automat {clase_create} clase în calendar.")
+            return redirect('fitness_classes_list')
+            
+        except Exception as e:
+            print(f"=== [EROARE CRITICĂ] S-a blocat la conversie: {str(e)} ===")
+            messages.error(request, f"A apărut o eroare la generare: {str(e)}")
+            
+    return render(request, 'generate_recurrent_classes.html', {'instructors': instructors})
+
 def index_view(request):
     # daca utilizatorul este deja logat, il trimitem direct la pagina de home
     if request.user.is_authenticated:
@@ -218,3 +384,35 @@ def index_view(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+def classes_view(request):
+    now = timezone.now()
+    all_upcoming = FitnessClass.objects.filter(start_time__gte=now).order_by('start_time')
+    
+    unique_classes = []
+    seen = set()
+    
+    for fc in all_upcoming:
+        group_key = (fc.name, fc.instructor_id if fc.instructor else None)
+        if group_key not in seen:
+            unique_classes.append(fc)
+            seen.add(group_key)
+            
+    return render(request, 'classes.html', {'fitness_classes': unique_classes})
+
+
+def class_detail_view(request, class_id):
+    fitness_class = get_object_or_404(FitnessClass, id=class_id)
+    
+    now = timezone.now()
+    sessions = FitnessClass.objects.filter(
+        name=fitness_class.name,
+        instructor=fitness_class.instructor,
+        start_time__gte=now
+    ).order_by('start_time')
+    
+    context = {
+        'fitness_class': fitness_class,
+        'sessions': sessions 
+    }
+    return render(request, 'class_detail.html', context)

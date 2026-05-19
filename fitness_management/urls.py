@@ -25,6 +25,7 @@ urlpatterns = [
     path('rezerva/<int:class_id>/', views.book_class, name='book_class'),
     path('recenzii/', views.reviews_list_view, name='reviews_list'),
     path('recenzii/adauga/<int:class_id>/', views.add_review_view, name='add_review'),
-    path('program/', views.classes_view, name='fitness_classes_list')
+    path('program/', views.classes_view, name='fitness_classes_list'),
+    path('management/genereaza-clase/', views.generate_recurrent_classes_view, name='generate_recurrent_classes'),
     
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
