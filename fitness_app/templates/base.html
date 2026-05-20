@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="ro">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,33 +10,33 @@
     <meta name="keywords" content="fitness, gym, training, algorhythm, cursuri fitness">
     <meta name="description" content="AlgoRhythm - Sala de fitness potrivita pentru antrenamente 100% personalizate.">
     <meta name="author" content="Echipa AlgoRhythm - Antal Estera & Fintoiu Andreea">
-    <!-- Favicon-uri -->
     <link rel="icon" type="image/png" href="{% static 'favicon/favicon-96x96.png' %}" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="{% static 'favicon/favicon.svg' %}" />
     <link rel="shortcut icon" href="{% static 'favicon/favicon.ico' %}" />
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'favicon/apple-touch-icon.png' %}" />
     <meta name="apple-mobile-web-app-title" content="AlgoRhythm" />
     <link rel="manifest" href="{% static 'favicon/site.webmanifest' %}" />
-     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
+
 <body>
 
     <nav class="navbar">
         <div class="nav-brand">AlgoRhythm Gym</div>
-            <ul class="nav-links">
-                <li><a href="{% url 'home' %}">Acasă</a></li>
-                <li><a href="{% url 'fitness_classes_list' %}">Program Clase</a></li>
-                <li><a href="{% url 'instructors' %}">Instructori</a></li>
-                <li><a href="{% url 'profile' %}">Profil</a></li>
-            </ul>
-            
+        <ul class="nav-links">
+            <li><a href="{% url 'home' %}">Acasă</a></li>
+            <li><a href="{% url 'fitness_classes_list' %}">Program Clase</a></li>
+            <li><a href="{% url 'instructors' %}">Instructori</a></li>
+            <li><a href="{% url 'profile' %}">Profil</a></li>
             {% if user.is_staff %}
-                <li><a href="{% url 'admin_dashboard' %}" style="color: white; font-weight: bold; ">Management</a></li>
+            <li><a href="{% url 'admin_dashboard' %}" style="color: white; font-weight: bold;">Management</a></li>
             {% endif %}
-            <div class="nav-auth">
-                <span class="user-tag">{{ user.username }} ({{ user.get_role_display }})</span>
-                <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
-            </div>
+        </ul>
+
+        <div class="nav-auth">
+            <span class="user-tag">{{ user.username }} ({{ user.get_role_display }})</span>
+            <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
+        </div>
     </nav>
 
     <div class="container">
@@ -66,5 +67,130 @@
         </div>
     </footer>
 
+    {% if user.is_authenticated %}
+    <div id="chat-circle" onclick="toggleChatWindow()" style="
+        position: fixed !important; 
+        bottom: 30px !important; 
+        right: 30px !important; 
+        background: #1f5b97 !important; 
+        color: white !important; 
+        width: 60px !important; 
+        height: 60px !important; 
+        border-radius: 50% !important; 
+        display: flex !important; 
+        align-items: center !important; 
+        justify-content: center !important; 
+        font-size: 1.6rem !important; 
+        cursor: pointer !important; 
+        box-shadow: 0 8px 25px rgba(31,91,151,0.4) !important; 
+        z-index: 9999 !important; 
+        transition: transform 0.2s ease !important;
+    " onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+        <i class="fa-solid fa-comments"></i>
+    </div>
+
+    <div id="chat-box" style="
+        display: none; 
+        position: fixed !important; 
+        bottom: 105px !important; 
+        right: 30px !important; 
+        width: 360px !important; 
+        height: 460px !important; 
+        background: white !important; 
+        border-radius: 16px !important; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important; 
+        flex-direction: column !important; 
+        z-index: 9999 !important; 
+        overflow: hidden !important; 
+        border: 1px solid #eee !important;
+        box-sizing: border-box !important;
+    ">
+        <div
+            style="background: #1f5b97 !important; color: white !important; padding: 15px 20px !important; display: flex !important; justify-content: space-between !important; align-items: center !important; box-sizing: border-box !important;">
+            <div style="display: flex !important; align-items: center !important; gap: 10px !important;">
+                <i class="fa-solid fa-robot" style="font-size: 1.2rem !important;"></i>
+                <div>
+                    <h4
+                        style="margin: 0 !important; font-size: 0.95rem !important; font-weight: 700 !important; font-family: inherit !important;">
+                        Asistent AlgoRhythm AI</h4>
+                    <span
+                        style="font-size: 0.75rem !important; color: #a3c2e0 !important; display: flex !important; align-items: center !important; gap: 4px !important;"><span
+                            style="width: 6px !important; height: 6px !important; background: #2ecc71 !important; border-radius: 50% !important;"></span>
+                        Online</span>
+                </div>
+            </div>
+            <i class="fa-solid fa-xmark" onclick="toggleChatWindow()"
+                style="cursor: pointer !important; font-size: 1.1rem !important; opacity: 0.8 !important;"></i>
+        </div>
+
+        <div id="chat-messages-container"
+            style="flex: 1 !important; padding: 15px !important; overflow-y: auto !important; background: #f8f9fa !important; display: flex !important; flex-direction: column !important; gap: 12px !important; box-sizing: border-box !important;">
+            <div
+                style="align-self: flex-start !important; background: white !important; color: #2c3e50 !important; padding: 10px 14px !important; border-radius: 12px 12px 12px 0 !important; max-width: 85 !important; font-size: 0.9rem !important; line-height: 1.4 !important; box-shadow: 0 2px 5px rgba(0,0,0,0.03) !important; border: 1px solid #edeef0 !important; box-sizing: border-box !important;">
+                Salutare, {{ user.first_name|default:user.username }}! 👋 Eu sunt asistentul tău virtual. Te pot ajuta
+                instant cu detalii despre <strong>tarife</strong>, <strong>orarul claselor</strong> sau
+                <strong>înscrieri rapide</strong>! Cu ce începem?
+            </div>
+        </div>
+
+        <div
+            style="padding: 12px !important; background: white !important; border-top: 1px solid #eee !important; display: flex !important; gap: 8px !important; align-items: center !important; box-sizing: border-box !important; width: 100% !important;">
+            <input type="text" id="chat-user-input" placeholder="Scrie o întrebare aici..."
+                style="flex: 1 !important; padding: 10px 12px !important; border: 1px solid #e2e8f0 !important; border-radius: 8px !important; font-size: 0.9rem !important; outline: none !important; box-sizing: border-box !important; background: #ffffff !important;"
+                onkeypress="if(event.key === 'Enter') trimiteMesajChatbot()">
+            <button onclick="trimiteMesajChatbot()"
+                style="background: #1f5b97 !important; color: white !important; border: none !important; width: 38px !important; height: 38px !important; border-radius: 8px !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; transition: background 0.2s !important;">
+                <i class="fa-solid fa-paper-plane" style="font-size: 0.9rem !important;"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function toggleChatWindow() {
+            var chatBox = document.getElementById('chat-box');
+            if (chatBox.style.display === 'none' || chatBox.style.display === '') {
+                chatBox.style.display = 'flex';
+            } else {
+                chatBox.style.display = 'none';
+            }
+        }
+
+        function trimiteMesajChatbot() {
+            var inputElement = document.getElementById('chat-user-input');
+            var messageText = inputElement.value.trim();
+            if (!messageText) return;
+
+            var container = document.getElementById('chat-messages-container');
+
+            var userHtml = '<div style="align-self: flex-end !important; background: #1f5b97 !important; color: white !important; padding: 10px 14px !important; border-radius: 12px 12px 0 12px !important; max-width: 85% !important; font-size: 0.9rem !important; line-height: 1.4 !important; box-shadow: 0 2px 5px rgba(31,91,151,0.15) !important; box-sizing: border-box !important;">' + messageText + '</div>';
+            container.insertAdjacentHTML('beforeend', userHtml);
+
+            inputElement.value = '';
+            container.scrollTop = container.scrollHeight;
+
+            fetch("{% url 'chatbot_trimite' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ message: messageText })
+            })
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    var botHtml = '<div style="align-self: flex-start !important; background: white !important; color: #2c3e50 !important; padding: 10px 14px !important; border-radius: 12px 12px 12px 0 !important; max-width: 85% !important; font-size: 0.9rem !important; line-height: 1.4 !important; box-shadow: 0 2px 5px rgba(0,0,0,0.03) !important; border: 1px solid #edeef0 !important; box-sizing: border-box !important;">' + data.response + '</div>';
+                    container.insertAdjacentHTML('beforeend', botHtml);
+                    container.scrollTop = container.scrollHeight;
+                })
+                .catch(function (error) {
+                    console.error("Eroare Chatbot Backend:", error);
+                });
+        }
+    </script>
+    {% endif %}
+
 </body>
+
 </html>

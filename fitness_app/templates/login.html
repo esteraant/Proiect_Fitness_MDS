@@ -1,26 +1,62 @@
 {% extends 'base.html' %}
-
-{% block title %}Login - AlgoRhythm Gym{% endblock %}
+{% block title %}Autentificare - AlgoRhythm Gym{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: center; align-items: center; min-height: 60vh;">
-    <div class="welcome-card" style="width: 100%; max-width: 400px; text-align: center; border-top: 5px solid #2c3e50;">
-        <h2 style="color: #2c3e50; margin-bottom: 1.5rem;">Bine ai revenit!</h2>
-        
-        <form method="POST">
-            {% csrf_token %}
-            <div style="margin-bottom: 1rem; text-align: left;">
-                {{ form.as_p }}
-            </div>
-            
-            <button type="submit" class="btn-ocean" style="width: 100%; border: none; cursor: pointer;">
-                Intră în cont
-            </button>
-        </form>
+<div class="container"
+    style="display: flex; justify-content: center; align-items: center; min-height: 80vh; padding: 20px;">
+    <div class="card"
+        style="max-width: 450px; width: 100%; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.06); border: none; background: #ffffff;">
 
-        <p style="margin-top: 1.5rem; font-size: 0.9rem; color: #7f8c8d;">
-            Nu ai cont? <a href="{% url 'register' %}" style="color: #3498db; text-decoration: none; font-weight: bold;">Creează unul aici</a>
-        </p>
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h2 style="color: #2c3e50; font-weight: 700; margin-bottom: 10px;">
+                <i class="fa-solid fa-right-to-bracket" style="color: #1f5b97; margin-right: 10px;"></i>Conectare Client
+            </h2>
+            <p style="color: #7f8c8d; font-size: 0.95rem;">Introdu datele tale pentru a accesa dashboard-ul tău fitness.
+            </p>
+            <div style="width: 50px; height: 4px; background: #1f5b97; margin: 15px auto; border-radius: 2px;"></div>
+        </div>
+
+        {% if form.errors %}
+        <div
+            style="padding: 12px 15px; background-color: #fce4e4; color: #c0392b; border: 1px solid #f9cbd0; border-radius: 8px; margin-bottom: 20px; font-weight: 600; font-size: 0.9rem;">
+            Utilizatorul sau parola sunt incorecte.
+        </div>
+        {% endif %}
+
+        <form method="POST" style="display: flex; flex-direction: column; gap: 20px;">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">
+                    <i class="fa-solid fa-user" style="color: #7f8c8d; margin-right: 5px;"></i> Nume utilizator
+                    (Username):
+                </label>
+                <input type="text" name="username" placeholder="Introdu username-ul..." required style="
+                    display: block; width: 100%; padding: 12px 15px; border: 2px solid #ecf0f1; border-radius: 10px; font-size: 0.95rem; outline: none; transition: border-color 0.3s; box-sizing: border-box;
+                " onfocus="this.style.borderColor='#1f5b97'" onblur="this.style.borderColor='#ecf0f1'">
+            </div>
+
+            <div class="form-group">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">
+                    <i class="fa-solid fa-lock" style="color: #7f8c8d; margin-right: 5px;"></i> Parolă:
+                </label>
+                <input type="password" name="password" placeholder="Introdu parola..." required style="
+                    display: block; width: 100%; padding: 12px 15px; border: 2px solid #ecf0f1; border-radius: 10px; font-size: 0.95rem; outline: none; transition: border-color 0.3s; box-sizing: border-box;
+                " onfocus="this.style.borderColor='#1f5b97'" onblur="this.style.borderColor='#ecf0f1'">
+            </div>
+
+            <button type="submit" class="btn-ocean" style="
+                background-color: #1f5b97; color: white; padding: 14px; border: none; border-radius: 12px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.3s ease; margin-top: 10px; box-shadow: 0 4px 15px rgba(31, 91, 151, 0.2);
+            " onmouseover="this.style.backgroundColor='#164371'; this.style.transform='translateY(-1px)'"
+                onmouseout="this.style.backgroundColor='#1f5b97'; this.style.transform='none'">
+                Intră în Cont
+            </button>
+
+            <div style="text-align: center; margin-top: 15px; font-size: 0.9rem; color: #7f8c8d;">
+                Nu ai un cont încă? <a href="{% url 'register' %}"
+                    style="color: #1f5b97; font-weight: 600; text-decoration: none;">Înregistrează-te aici</a>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}

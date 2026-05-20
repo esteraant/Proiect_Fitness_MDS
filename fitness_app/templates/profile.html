@@ -2,24 +2,23 @@
 
 {% block content %}
 <div class="container" style="max-width: 900px; margin-top: 30px; margin-bottom: 50px;">
-    
+
     <div style="margin-bottom: 25px;">
-      <a href="{% url 'home' %}" class="btn-back" style="
-          display: inline-block; 
-         width: 200px; 
-         text-align: center; 
-         text-decoration: none; 
-          padding: 12px; 
-          background-color: #2c3e50; 
-         color: #ffffff; 
-          border-radius: 5px; 
-          font-weight: bold;
-          transition: all 0.3s ease; /* Face tranziția lină pentru umbră */
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Umbră discretă de bază */
-        " 
-        onmouseover="this.style.boxShadow='0 8px 15px rgba(0,0,0,0.3)'; this.style.transform='translateY(-2px)';" 
-         onmouseout="this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'; this.style.transform='translateY(0)';">
-        ⬅ Înapoi la Acasă
+        <a href="{% url 'home' %}" class="btn-back" style="
+            display: inline-block; 
+            width: 200px; 
+            text-align: center; 
+            text-decoration: none; 
+            padding: 12px; 
+            background-color: #2c3e50; 
+            color: #ffffff; 
+            border-radius: 5px; 
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        " onmouseover="this.style.boxShadow='0 8px 15px rgba(0,0,0,0.3)'; this.style.transform='translateY(-2px)';"
+            onmouseout="this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'; this.style.transform='translateY(0)';">
+            ⬅ Înapoi la Acasă
         </a>
     </div>
 
@@ -30,54 +29,210 @@
             <p><strong>Username:</strong> {{ user.username }}</p>
             <p><strong>Adresă Email:</strong> {{ user.email }}</p>
             <p><strong>Gen:</strong> {{ user.get_gender_display }}</p>
-            <p><strong>Categorie Vârstă:</strong> 
-                {% if user.is_child %} 
-                    <span style="color: #e67e22; font-weight: bold;"><i class="fa-solid fa-child"></i> Copil (Sub 18 ani)</span>
-                {% else %} 
-                    <span style="color: #27ae60; font-weight: bold;"><i class="fa-solid fa-user"></i> Adult</span>
+            <p><strong>Categorie Vârstă:</strong>
+                {% if user.is_child %}
+                <span style="color: #e67e22; font-weight: bold;"><i class="fa-solid fa-child"></i> Copil (Sub 18 ani)</span>
+                {% else %}
+                <span style="color: #27ae60; font-weight: bold;"><i class="fa-solid fa-user"></i> Adult</span>
                 {% endif %}
             </p>
         </div>
     </div>
 
+    {% if messages %}
+    {% for message in messages %}
+    <div style="padding: 12px 15px; background-color: #d4edda; color: #155724; border-radius: 8px; margin-bottom: 25px; font-weight: 600; font-size: 0.95rem; border: 1px solid #c3e6cb;">
+        <i class="fa-solid fa-square-check"></i> {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
-        
-        <div class="welcome-card" style="border-left: 6px solid #e67e22; padding: 25px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px;">
-            <h3 style="margin-top: 0; color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px;"><i class="fa-solid fa-bullseye"></i> Obiective Fitness</h3>
-            <div style="margin-top: 15px;">
-                <p><strong>Obiectiv Principal:</strong> {{ user.fitness_goal|default:"Nu a fost setat un obiectiv" }}</p>
-                <p><strong>Frecvență Antrenamente:</strong> {{ user.frequency_per_week }} antrenamente / săptămână</p>
-            </div>
+
+        <div class="welcome-card" style="border-left: 6px solid #e67e22; padding: 25px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between;">
+            <form method="POST" style="margin: 0; padding: 0; display: flex; flex-direction: column; height: 100%;">
+                {% csrf_token %}
+
+                <div>
+                    <h3 style="margin-top: 0; color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+                        <i class="fa-solid fa-bullseye"></i> Obiective Fitness
+                    </h3>
+
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 0.95rem;">Obiectiv Principal:</label>
+                        <textarea id="ai-fitness-goal" name="fitness_goal" rows="2" disabled placeholder="Nu a fost setat un obiectiv" style="
+                            width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; outline: none; box-sizing: border-box; resize: none; font-family: inherit;
+                            background-color: #f9f9f9; color: #555; transition: all 0.2s ease;
+                        ">{{ user.fitness_goal }}</textarea>
+
+                        <small id="ai-hints" style="display: none; color: #7f8c8d; margin-top: 4px; line-height: 1.3; font-size: 0.82rem;">
+                            💡 <em>Folosește cuvinte cheie ca: <strong>slăbire</strong>, <strong>forță</strong>, <strong>masă musculară</strong> sau <strong>relaxare</strong> pentru a activa recomandările dinamice ale robotului AI de pe pagina principală.</em>
+                        </small>
+                    </div>
+
+                    <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                        <label style="font-weight: bold; color: #2c3e50; font-size: 0.95rem; white-space: nowrap;">Frecvență Antrenamente:</label>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <input id="ai-frequency" type="number" name="frequency_per_week" value="{{ user.frequency_per_week }}" min="0" max="7" disabled style="
+                                width: 55px; padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; outline: none; text-align: center;
+                                background-color: #f9f9f9; color: #555; transition: all 0.2s ease;
+                            ">
+                            <span style="color: #555; font-size: 0.95rem;">/ săptămână</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: auto; padding-top: 10px;">
+                    <button type="button" id="edit-trigger-btn" onclick="activateEditMode()" style="
+                        display: block; width: 100%; text-align: center; text-decoration: none; padding: 10px; font-size: 0.95rem; font-weight: bold; border-radius: 4px; cursor: pointer; border: none;
+                        background-color: #1f5b97; color: white; transition: background 0.2s;
+                    " onmouseover="this.style.backgroundColor='#164371'" onmouseout="this.style.backgroundColor='#1f5b97'">
+                        <i class="fa-solid fa-pen-to-square"></i> Editează Obiectivul
+                    </button>
+
+                    <div id="action-buttons-group" style="display: none; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button type="button" onclick="cancelEditMode()" style="
+                            padding: 10px; font-size: 0.95rem; font-weight: bold; border-radius: 4px; cursor: pointer; border: 1px solid #ccc;
+                            background-color: #e74c3c; color: white; transition: background 0.2s;
+                        " onmouseover="this.style.backgroundColor='#c0392b'" onmouseout="this.style.backgroundColor='#e74c3c'">
+                            <i class="fa-solid fa-xmark"></i> Anulează
+                        </button>
+                        <button type="submit" style="
+                            padding: 10px; font-size: 0.95rem; font-weight: bold; border-radius: 4px; cursor: pointer; border: none;
+                            background-color: #27ae60; color: white; transition: background 0.2s;
+                        " onmouseover="this.style.backgroundColor='#219150'" onmouseout="this.style.backgroundColor='#27ae60'">
+                            <i class="fa-solid fa-floppy-disk"></i> Salvează
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
 
-        <div class="welcome-card" style="border-left: 6px solid {% if subscription.is_frozen %}#95a5a6{% else %}#2ecc71{% endif %}; padding: 25px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px;">
-            <h3 style="margin-top: 0; color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px;"><i class="fa-solid fa-credit-card"></i> Detalii Abonament</h3>
-            
-            {% if subscription %}
-                <div style="margin-top: 15px;">
-                    <p><strong>Status:</strong> 
-                        {% if subscription.is_frozen %}
-                            <span style="background: #bdc3c7; color: white; padding: 4px 10px; border-radius: 15px; font-size: 0.9rem;"><i class="fa-solid fa-snowflake"></i> ÎNGHEȚAT</span>
-                        {% else %}
-                            <span style="background: #2ecc71; color: white; padding: 4px 10px; border-radius: 15px; font-size: 0.9rem;"><i class="fa-solid fa-check-circle"></i> ACTIV</span>
-                        {% endif %}
-                    </p>
-                    <p><strong>Data activării:</strong> {{ subscription.start_date|date:"d M Y" }}</p>
-                    <p><strong>Valabilitate:</strong> {{ days_left }} zile rămase</p>
-                    
-                    <a href="{% url 'freeze_subscription' %}" class="btn-ocean" 
-                       style="display: block; text-align: center; margin-top: 20px; text-decoration: none; background-color: {% if subscription.is_frozen %}#27ae60{% else %}#34495e{% endif %};">
+        <div class="welcome-card" style="
+            border-left: 6px solid {% if subscription.is_frozen %}#95a5a6{% else %}#2ecc71{% endif %} !important; 
+            padding: 25px !important; 
+            background: white !important; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important; 
+            border-radius: 8px !important; 
+            display: flex !important; 
+            flex-direction: column !important; 
+            justify-content: space-between !important;
+            box-sizing: border-box !important;
+        ">
+            <div>
+                <h3 style="margin-top: 0 !important; color: #2c3e50 !important; border-bottom: 1px solid #eee !important; padding-bottom: 10px !important; margin-bottom: 20px !important;">
+                    <i class="fa-solid fa-credit-card"></i> Detalii Abonament
+                </h3>
+                
+                {% if subscription %}
+                    <div style="margin-top: 15px !important; display: flex !important; flex-direction: column !important; gap: 12px !important;">
+                        <p style="margin: 0 !important; font-size: 0.95rem !important;">
+                            <strong>Status:</strong> 
+                            {% if subscription.is_frozen %}
+                                <span style="background: #bdc3c7; color: white; padding: 4px 10px; border-radius: 15px; font-size: 0.85rem; font-weight: bold; display: inline-block; margin-left: 5px;"><i class="fa-solid fa-snowflake"></i> ÎNGHEȚAT</span>
+                            {% else %}
+                                <span style="background: #2ecc71; color: white; padding: 4px 10px; border-radius: 15px; font-size: 0.85rem; font-weight: bold; display: inline-block; margin-left: 5px;"><i class="fa-solid fa-check-circle"></i> ACTIV</span>
+                            {% endif %}
+                        </p>
+                        <p style="margin: 0 !important; font-size: 0.95rem !important;"><strong>Data activării:</strong> {{ subscription.start_date|date:"d M Y" }}</p>
+                        <p style="margin: 0 !important; font-size: 0.95rem !important;"><strong>Valabilitate:</strong> {{ days_left }} zile rămase</p>
+                    </div>
+                {% else %}
+                    <div style="text-align: center !important; margin-top: 20px !important;">
+                        <p style="color: #7f8c8d !important; margin: 0 !important; font-size: 0.95rem !important;">Nu ai un abonament activ în acest moment.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div style="margin-top: auto !important; padding-top: 20px !important; width: 100% !important;">
+                {% if subscription %}
+                    <a href="{% url 'freeze_subscription' %}" style="
+                        display: block !important; 
+                        width: 100% !important;
+                        box-sizing: border-box !important;
+                        text-align: center !important; 
+                        text-decoration: none !important; 
+                        padding: 10px 15px !important; 
+                        font-size: 0.95rem !important; 
+                        font-weight: bold !important; 
+                        border-radius: 4px !important; 
+                        color: white !important; 
+                        border: none !important;
+                        height: auto !important;
+                        line-height: normal !important;
+                        background-color: {% if subscription.is_frozen %}#27ae60{% else %}#34495e{% endif %} !important;
+                        transition: opacity 0.2s ease !important;
+                    " onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
                         {% if subscription.is_frozen %} <i class="fa-solid fa-sun"></i> Dezgheață Acum {% else %} <i class="fa-solid fa-snowflake"></i> Îngheață Abonamentul {% endif %}
                     </a>
-                </div>
-            {% else %}
-                <div style="text-align: center; margin-top: 20px;">
-                    <p style="color: #7f8c8d;">Nu ai un abonament activ în acest moment.</p>
-                    <a href="{% url 'fitness_classes_list' %}" class="btn-ocean" style="display: inline-block; text-decoration: none; margin-top: 10px;">🛒 Vezi Oferte</a>
-                </div>
-            {% endif %}
+                {% else %}
+                    <a href="{% url 'fitness_classes_list' %}" style="
+                        display: block !important; 
+                        width: 100% !important;
+                        box-sizing: border-box !important;
+                        text-align: center !important; 
+                        text-decoration: none !important; 
+                        padding: 10px 15px !important; 
+                        font-size: 0.95rem !important; 
+                        font-weight: bold !important; 
+                        border-radius: 4px !important; 
+                        color: white !important; 
+                        background-color: #1f5b97 !important;
+                    ">🛒 Vezi Oferte</a>
+                {% endif %}
+            </div>
         </div>
 
     </div>
 </div>
+
+<script>
+    const initialGoalValue = `{{ user.fitness_goal|escapejs }}`;
+    const initialFrequencyValue = "{{ user.frequency_per_week }}";
+
+    function activateEditMode() {
+        const goalArea = document.getElementById('ai-fitness-goal');
+        const freqInput = document.getElementById('ai-frequency');
+        const hintsText = document.getElementById('ai-hints');
+        const triggerBtn = document.getElementById('edit-trigger-btn');
+        const actionGroup = document.getElementById('action-buttons-group');
+
+        goalArea.disabled = false;
+        freqInput.disabled = false;
+
+        goalArea.style.backgroundColor = '#ffffff';
+        goalArea.style.borderColor = '#e67e22'; 
+        freqInput.style.backgroundColor = '#ffffff';
+        freqInput.style.borderColor = '#e67e22';
+
+        hintsText.style.display = 'block';
+
+        triggerBtn.style.display = 'none';
+        actionGroup.style.display = 'grid';
+    }
+
+    function cancelEditMode() {
+        const goalArea = document.getElementById('ai-fitness-goal');
+        const freqInput = document.getElementById('ai-frequency');
+        const hintsText = document.getElementById('ai-hints');
+        const triggerBtn = document.getElementById('edit-trigger-btn');
+        const actionGroup = document.getElementById('action-buttons-group');
+
+        goalArea.disabled = true;
+        freqInput.disabled = true;
+
+        goalArea.style.backgroundColor = '#f9f9f9';
+        goalArea.style.borderColor = '#ddd';
+        freqInput.style.backgroundColor = '#f9f9f9';
+        freqInput.style.borderColor = '#ddd';
+
+        goalArea.value = initialGoalValue;
+        freqInput.value = initialFrequencyValue;
+
+        hintsText.style.display = 'none';
+
+        actionGroup.style.display = 'none';
+        triggerBtn.style.display = 'block';
+    }
+</script>
 {% endblock %}
