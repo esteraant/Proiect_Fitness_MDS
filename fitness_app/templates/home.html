@@ -8,7 +8,7 @@
 
     <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee;">
         <strong>Statut Abonament:</strong>
-        {% if subscription %}
+        {% if subscription and is_subscription_active %}
         {% if subscription.is_frozen %}
         <span class="status-badge status-frozen">
             <i class="fa-solid fa-snowflake"></i> Înghețat (Până la {{ subscription.end_date }})
@@ -101,7 +101,7 @@
     border: none;
 ">
     <h3 class="ai-dashboard-title" style="
-        margin-0 0 25px 0; 
+        margin: 0 0 25px 0; 
         color: #2c3e50; 
         font-size: 1.25rem; 
         font-weight: 700;
@@ -140,8 +140,7 @@
             display: flex; 
             align-items: flex-start; 
             gap: 15px;
-            {% if show_freeze_reminder %} padding-bottom: 15px; border-bottom: 1px solid #f1f2f6; {% endif %}
-        ">
+            {% if show_freeze_reminder %} padding-bottom: 15px; border-bottom: 1px solid #f1f2f6; {% endif %}">
             <span class="ai-badge ai-badge-green" style="
                 background-color: #27ae60; 
                 color: white; 

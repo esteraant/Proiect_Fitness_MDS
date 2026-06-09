@@ -58,6 +58,13 @@
                     <label style="font-weight: 600; display:block; margin-bottom: 5px;">Durată (minute):</label>
                     <input type="number" name="duration_minutes" value="60" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
                 </div>
+                <label for="roomSelect">Sala cursului (Doar pentru clase de grup):</label>\
+                
+                <select name="room" id="roomSelect">
+                    {% for r in rooms %}
+                        <option value="{{ r.id }}">{{ r.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
 
             <div style="display: flex; gap: 15px; margin-bottom: 20px;">

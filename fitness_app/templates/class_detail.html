@@ -36,9 +36,34 @@
             </a>
         </div>
 
-        <h3 style="color: #2c3e50; margin-top: 35px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px;">
-            Calendar Ședințe Disponibile
-        </h3>
+
+        <div style="margin-top: 35px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+            <h3 style="color: #2c3e50; margin: 0;">Calendar Ședințe</h3>
+            
+            {% if available_months %}
+            <form method="GET" action="" id="monthFilterForm">
+                <select name="month" id="monthSelect" onchange="document.getElementById('monthFilterForm').submit();" style="padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-weight: 600; color: #2c3e50; cursor: pointer;">
+                    {% for month_key, month_name in available_months.items %}
+                        <option value="{{ month_key }}" {% if month_key == selected_month %}selected{% endif %}>
+                            {{ month_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <select name="day_of_week" id="daySelect" onchange="document.getElementById('monthFilterForm').submit();" style="padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-weight: 600; color: #2c3e50; cursor: pointer;">
+                <option value="all" {% if selected_day == 'all' %}selected{% endif %}>Toate zilele</option>
+                <option value="0" {% if selected_day == '0' %}selected{% endif %}>Luni</option>
+                <option value="1" {% if selected_day == '1' %}selected{% endif %}>Marți</option>
+                <option value="2" {% if selected_day == '2' %}selected{% endif %}>Miercuri</option>
+                <option value="3" {% if selected_day == '3' %}selected{% endif %}>Joi</option>
+                <option value="4" {% if selected_day == '4' %}selected{% endif %}>Vineri</option>
+                <option value="5" {% if selected_day == '5' %}selected{% endif %}>Sâmbătă</option>
+                <option value="6" {% if selected_day == '6' %}selected{% endif %}>Duminică</option>
+            </select>
+
+            </form>
+            {% endif %}
+        </div>
 
         <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
             {% for session in sessions %}
@@ -47,12 +72,9 @@
                         <span style="font-weight: bold; color: #2c3e50; font-size: 1.05rem;">
                             {{ session.start_time|date:"l, d F Y" }} — Ora {{ session.start_time|date:"H:i" }}
                         </span>
-                        <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 2px;">
-                            Locuri libere: 
-                            <span style="font-weight: bold; color: {% if session.available_spots > 0 %}#2ecc71{% else %}#e74c3c{% endif %};">
-                                {{ session.available_spots }}
-                            </span> / {{ session.max_capacity }}
-                        </div>
+                        <span style="font-size: 0.85rem; color: #7f8c8d; margin-left: 15px;">
+                            Locuri libere: <span style="font-weight: bold; color: {% if session.available_spots > 0 %}#2ecc71{% else %}#e74c3c{% endif %};">{{ session.available_spots }}</span> / {{ session.max_capacity }}
+                        </span>
                     </div>
                     
                     <div>

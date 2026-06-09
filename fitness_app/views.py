@@ -6,12 +6,12 @@ from django.contrib.admin.views.decorators import staff_member_required
 from .forms import CustomUserCreationForm
 from django.contrib import messages
 from .forms import ReviewForm
-from .models import Review
 from django.utils import timezone
 from datetime import datetime, date, timedelta
-from .models import Subscription, Booking, User, FitnessClass, Room, GymSession
+from .models import Subscription, Booking, User, FitnessClass, Room, GymSession, Review
 from django.db.models import Q
 from django.http import JsonResponse
+from .utils import GymSystemConfig, SubscriptionFactory
 import re
 
 def login_view(request):
@@ -29,9 +29,20 @@ def login_view(request):
 @login_required
 def home_view(request):
     subscription = Subscription.objects.filter(user=request.user).first()
-    attended_count = Booking.objects.filter(user=request.user, attended=True).count()
+    
     now = timezone.now()
 
+    is_subscription_active = False
+    if subscription:
+        if subscription.end_date and subscription.end_date < today:
+            # abonamentul expirat sa se stearga automat din DB
+            subscription.delete()
+            subscription = None
+            is_subscription_active = False
+        else:
+            is_subscription_active = True
+
+    attended_count = Booking.objects.filter(user=request.user, attended=True).count()
     # Agent AI - analiza si predictie
    
  # --- SALA MARE ---
@@ -179,13 +190,6 @@ def activate_subscription(request):
     sub.save()
     return redirect('profile')
 
-# def classes_view(request):
-#     fitness_classes = FitnessClass.objects.all()
-    
-#     for fc in fitness_classes:
-#         fc.disponibile = fc.max_capacity - fc.booked_slots
-        
-#     return render(request, 'classes.html', {'fitness_classes': fitness_classes})
 
 @login_required
 def reviews_list_view(request):
@@ -222,27 +226,70 @@ def add_review_view(request, class_id):
 @login_required
 def book_class(request, class_id):
     fitness_class = get_object_or_404(FitnessClass, id=class_id)
+    user = request.user
     
     if fitness_class.available_spots <= 0:
         messages.error(request, "Din păcate, nu mai sunt locuri disponibile la această clasă.")
         return redirect('fitness_classes_list')
     
+    # calculam ora de final pentru surpapuneri
+    duration = getattr(fitness_class, 'duration_minutes', 60) 
+    clasa_end_time = fitness_class.start_time + timedelta(minutes=int(duration))
+    
+    # det daca aceasta rezervare este facuta de un parinte pentru copilul sau
+    is_booking_for_child = False
+    if fitness_class.is_for_children and hasattr(user, 'is_child') and not user.is_child:
+        is_booking_for_child = True
+
     # verificam sa nu fie deja inscris
-    already_booked = Booking.objects.filter(user=request.user, fitness_class=fitness_class).exists()
+    already_booked = Booking.objects.filter(user=user, fitness_class=fitness_class).exists()
     if already_booked:
         messages.warning(request, "Ești deja înscris la această clasă!")
         return redirect('fitness_classes_list')
     
+
+    if fitness_class.is_for_women_only and hasattr(user, 'gender') and user.gender == 'M':
+        messages.error(request, "Acces respins! Această clasă este exclusiv dedicată femeilor.")
+        return redirect('fitness_classes_list')
+    
+    user_bookings = Booking.objects.filter(user=user)
+    for b in user_bookings:
+        b_duration = getattr(b.fitness_class, 'duration_minutes', 60)
+        b_end_time = b.fitness_class.start_time + timedelta(minutes=int(b_duration))
+        
+        if fitness_class.start_time < b_end_time and clasa_end_time > b.fitness_class.start_time:
+            # parintele poate asista in paralel la alta clasa
+            if is_booking_for_child and not getattr(b, 'is_for_child', False):
+                continue
+            if not fitness_class.is_for_children and getattr(b, 'is_for_child', False):
+                continue
+                
+            messages.error(request, f"Suprapunere de orar! Te-ai înscris deja la clasa '{b.fitness_class.name}' în acest interval.")
+            return redirect('fitness_classes_list')
+        
+    
+    if fitness_class.is_for_children:
+        if hasattr(user, 'is_child') and not user.is_child:
+            messages.info(request, "Notă: Ai rezervat un loc pentru copilul tău la această clasă specială.")
+    else:
+        # Daca clasa este de adulti standard, blocam conturile de copii direct
+        if hasattr(user, 'is_child') and user.is_child:
+            messages.error(request, "Conturile de copii nu pot efectua rezervări la clasele de adulți. Înscrierea trebuie făcută de un părinte!")
+            return redirect('fitness_classes_list')
+    
     subscription = Subscription.objects.filter(user=request.user).first()
 
     if not subscription:
+        plan_handler = SubscriptionFactory.create_plan('1M')
+        plan_details = plan_handler.get_details()
+
         subscription = Subscription.objects.create(
             user=request.user,
             start_date=date.today(),
-            end_date=date.today() + timedelta(days=30),
+            end_date=date.today() + timedelta(days=plan_details['duration_days']),
             is_frozen=False,
-            price=150.00,
-            plan='1M'
+            price=plan_details['price'],
+            plan=plan_details['plan']
         )
         messages.info(request, "Un abonament nou a fost activat pentru tine.")
     else:
@@ -251,13 +298,11 @@ def book_class(request, class_id):
             return redirect('profile')
 
     
-    Booking.objects.create(
-        user=request.user,
-        fitness_class=fitness_class
-    )
-    locuri_ramase = fitness_class.available_spots
-    
-    messages.success(request, f"Loc rezervat cu succes! (Rămase: {locuri_ramase})")
+    noua_rezervare = Booking.objects.create(user=request.user, fitness_class=fitness_class)
+    if is_booking_for_child and hasattr(noua_rezervare, 'is_for_child'):
+        noua_rezervare.is_for_child = True
+        noua_rezervare.save()
+    messages.success(request, "Loc rezervat cu succes!")
     return redirect('fitness_classes_list')
 
 
@@ -268,11 +313,23 @@ def instructors_view(request):
 
 def instructor_detail_view(request, instructor_id):
     instructor = get_object_or_404(User, id=instructor_id, role='INS')
-    classes = FitnessClass.objects.filter(instructor=instructor)
+    # classes = FitnessClass.objects.filter(instructor=instructor)
     
+    now = timezone.now()
+    all_upcoming = FitnessClass.objects.filter(instructor=instructor, start_time__gte=now).order_by('start_time')
+
+    # eliminam duplicatele vizuale pe baza numelui clasei
+    unique_classes = []
+    seen_names = set()
+    
+    for fc in all_upcoming:
+        if fc.name not in seen_names:
+            unique_classes.append(fc)
+            seen_names.add(fc.name)
+
     context = {
         'instructor': instructor,
-        'classes': classes
+        'classes': unique_classes
     }
     return render(request, 'instructor_detail.html', context)
 
@@ -301,12 +358,69 @@ def register_view(request):
 
 def classes_view(request):
     now = timezone.now()
-    fitness_classes = FitnessClass.objects.filter(start_time__gte=now).order_by('start_time')
-    return render(request, 'classes.html', {'fitness_classes': fitness_classes})
+    all_upcoming = FitnessClass.objects.filter(start_time__gte=now).order_by('start_time')
+    
+    unique_classes = []
+    seen = set()
+    for fc in all_upcoming:
+        group_key = (fc.name, fc.instructor_id if fc.instructor else None)
+        if group_key not in seen:
+            unique_classes.append(fc)
+            seen.add(group_key)
+            
+    return render(request, 'classes.html', {'fitness_classes': unique_classes})
 
+# Pagina de detalii
 def class_detail_view(request, class_id):
     fitness_class = get_object_or_404(FitnessClass, id=class_id)
-    return render(request, 'class_detail.html', {'fitness_class': fitness_class})
+    now = timezone.now()
+    
+    all_sessions = FitnessClass.objects.filter(
+        name=fitness_class.name,
+        instructor=fitness_class.instructor,
+        start_time__gte=now
+    ).order_by('start_time')
+    
+    luni_ro = {
+        1: "Ianuarie", 2: "Februarie", 3: "Martie", 4: "Aprilie", 
+        5: "Mai", 6: "Iunie", 7: "Iulie", 8: "August", 
+        9: "Septembrie", 10: "Octombrie", 11: "Noiembrie", 12: "Decembrie"
+    }
+
+    available_months = {}
+    for session in all_sessions:
+        month_key = f"{session.start_time.year}-{session.start_time.month:02d}"
+        month_display = f"{luni_ro[session.start_time.month]} {session.start_time.year}"
+        if month_key not in available_months:
+            available_months[month_key] = month_display
+
+    selected_month = request.GET.get('month')
+    if not selected_month and available_months:
+        selected_month = list(available_months.keys())[0]
+
+    if selected_month:
+        try:
+            year_str, month_str = selected_month.split('-')
+            sessions = all_sessions.filter(start_time__year=int(year_str), start_time__month=int(month_str))
+        except (ValueError, IndexError):
+            sessions = all_sessions
+    else:
+        sessions = all_sessions
+
+
+    selected_day = request.GET.get('day_of_week')
+    if selected_day and selected_day != 'all':
+        sessions = [s for s in sessions if s.start_time.weekday() == int(selected_day)]
+
+
+    context = {
+        'fitness_class': fitness_class,
+        'sessions': sessions,
+        'available_months': available_months,
+        'selected_month': selected_month,
+        'selected_day': selected_day or 'all',
+    }
+    return render(request, 'class_detail.html', context)
     
 @staff_member_required
 def admin_dashboard_view(request):
@@ -316,23 +430,26 @@ def admin_dashboard_view(request):
     recent_bookings = Booking.objects.all().order_by('-id')[:5] 
     # ultimele 5 rezervari
 
+    # Singleton
+    gym_config = GymSystemConfig()
+
     context = {
         'total_users': total_users,
         'total_classes': total_classes,
         'recent_bookings': recent_bookings,
+        'gym_name': gym_config.gym_name,
     }
     return render(request, 'admin_dashboard.html', context)
 
 @staff_member_required
 def generate_recurrent_classes_view(request):
     instructors = User.objects.filter(role='INS')
+    sali_grup = Room.objects.filter(room_type='GROUP')
     
     if request.method == 'POST':
-        print("\n=== [DEBUG] FORMULAR REZERVĂRI TRIMIS ===")
         name = request.POST.get('name')
         class_type = request.POST.get('type')
         instructor_id = request.POST.get('instructor')
-        price = request.POST.get('price', 0)
         max_capacity = request.POST.get('max_capacity', 10)
         duration_minutes = request.POST.get('duration_minutes', 60)
         
@@ -343,13 +460,25 @@ def generate_recurrent_classes_view(request):
         end_date_str = request.POST.get('end_date')
         time_str = request.POST.get('class_time')
         
-        print(f"-> Date brute: Start={start_date_str}, End={end_date_str}, Ora={time_str}")
-        
         selected_days = [int(day) for day in request.POST.getlist('days_of_week')]
-        print(f"-> Zile selectate (0=Luni, 6=Dum): {selected_days}")
         
+        # mapare automata sali si capacitati
+        room = None
+        if class_type == '1TO1':
+            room = Room.objects.filter(room_type='GYM').first() # Sala Mare automat
+            max_capacity = min(int(max_capacity), 2) # capacitate de 1-2 persoane maximum
+        elif class_type == 'INDIVIDUAL':
+            room = Room.objects.filter(room_type='GYM').first() # Sala Mare automat
+            # Pentru individual nu generam recurent in calendarul de clase
+        else:
+            # Pentru clasele de grup, preluam sala selectata din formular
+            room_id = request.POST.get('room')
+            if room_id:
+                room = Room.objects.filter(id=room_id).first()
+            if not room:
+                room = Room.objects.filter(room_type='GROUP', name__icontains='Sala 1').first() # Default Sala 1
+
         if not selected_days:
-            print("-> [EROARE] Nu s-a bifeat nicio zi a saptamanii!")
             messages.error(request, "Trebuie să bifezi cel puțin o zi a săptămânii!")
             return redirect('generate_recurrent_classes')
             
@@ -369,17 +498,39 @@ def generate_recurrent_classes_view(request):
             
             while current_date <= end_date:
                 if current_date.weekday() in selected_days:
-                    # CORECCȚIE AICI: Am schimbat din combine în datetime.combine
                     naive_datetime = datetime.combine(current_date, class_time)
                     localized_datetime = timezone.make_aware(naive_datetime)
+                    end_datetime = localized_datetime + timedelta(minutes=int(duration_minutes))
+
+                    instructor_ocupat = FitnessClass.objects.filter(
+                        instructor=instructor,
+                        start_time__lt=end_datetime,
+                        start_time__gte=localized_datetime - timedelta(hours=2) 
+                    ).exists() if instructor else False
+                    
+                    # verificare daca sala este ocupata
+                    sala_ocupata = FitnessClass.objects.filter(
+                        room=room,
+                        start_time__lt=end_datetime,
+                        start_time__gte=localized_datetime - timedelta(hours=2)
+                    ).exists() if room else False
+                    
+                    if instructor_ocupat:
+                        messages.warning(request, f"Instructorul este deja ocupat pe data de {current_date} la ora {time_str}!")
+                        current_date += timedelta(days=1)
+                        continue
+                        
+                    if sala_ocupata:
+                        messages.warning(request, f"Sala selectată este deja ocupată pe data de {current_date} la ora {time_str}!")
+                        current_date += timedelta(days=1)
+                        continue
                     
                     FitnessClass.objects.create(
                         name=name,
                         type=class_type,
                         instructor=instructor,
-                        price=price,
                         max_capacity=max_capacity,
-                        duration_minutes=duration_minutes,
+                        room=room,
                         is_for_women_only=is_for_women_only,
                         is_for_children=is_for_children,
                         start_time=localized_datetime
@@ -387,15 +538,16 @@ def generate_recurrent_classes_view(request):
                     clase_create += 1
                 current_date += timedelta(days=1)
                 
-            print(f"=== [SUCCESS] S-au generat cu succes {clase_create} clase! ===")
-            messages.success(request, f"Succes! Au fost generate automat {clase_create} clase în calendar.")
+            messages.success(request, f"Succes! Au fost generate automat {clase_create} clase în {room.name if room else 'sală'}..")
             return redirect('fitness_classes_list')
             
         except Exception as e:
-            print(f"=== [EROARE CRITICĂ] S-a blocat la conversie: {str(e)} ===")
             messages.error(request, f"A apărut o eroare la generare: {str(e)}")
             
-    return render(request, 'generate_recurrent_classes.html', {'instructors': instructors})
+    return render(request, 'generate_recurrent_classes.html', {
+        'instructors': instructors,
+        'rooms': sali_grup 
+    })
 
 def index_view(request):
     # daca utilizatorul este deja logat, il trimitem direct la pagina de home
@@ -406,39 +558,6 @@ def index_view(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
-
-def classes_view(request):
-    now = timezone.now()
-    all_upcoming = FitnessClass.objects.filter(start_time__gte=now).order_by('start_time')
-    
-    unique_classes = []
-    seen = set()
-    
-    for fc in all_upcoming:
-        group_key = (fc.name, fc.instructor_id if fc.instructor else None)
-        if group_key not in seen:
-            unique_classes.append(fc)
-            seen.add(group_key)
-            
-    return render(request, 'classes.html', {'fitness_classes': unique_classes})
-
-
-def class_detail_view(request, class_id):
-    fitness_class = get_object_or_404(FitnessClass, id=class_id)
-    
-    now = timezone.now()
-    sessions = FitnessClass.objects.filter(
-        name=fitness_class.name,
-        instructor=fitness_class.instructor,
-        start_time__gte=now
-    ).order_by('start_time')
-    
-    context = {
-        'fitness_class': fitness_class,
-        'sessions': sessions 
-    }
-    return render(request, 'class_detail.html', context)
-
 
 
 @login_required
@@ -452,22 +571,19 @@ def chatbot_response_view(request):
         # Răspunsul implicit al chatbot-ului
         bot_response = "Sunt asistentul tău virtual AlgoRhythm AI. Te pot ajuta cu informații despre tarife, orarul claselor sau înscrieri rapide! Încearcă să mă întrebi: 'Ce tarife aveți?' sau 'Care este programul?'."
         
-        # 1. LOGICĂ PENTRU TARIFE / ABONAMENTE
         if any(cuvant in user_message_lower for cuvant in ['tarif', 'tarife', 'pret', 'preț', 'abonament', 'cost', 'bani']):
             bot_response = "💳 **Tarifele AlgoRhythm Gym:**<br>• Abonament Lunar Standard: 180 RON (Acces nelimitat sală fitnes)<br>• Abonament Dynamic Group: 240 RON (Acces sală + toate clasele de grup)<br>• Sesiune 1-la-1 (Personal Trainer): 80 RON / ședință.<br><br>_Sfat: Poți îngheța abonamentul direct din pagina ta de Profil dacă pleci în vacanță!_"
 
-        # 2. LOGICĂ PENTRU ORAR / PROGRAM
         elif any(cuvant in user_message_lower for cuvant in ['orar', 'program', 'clase', 'sedinte', 'ședințe', 'zumba', 'yoga', 'aerobic']):
             now = timezone.now()
             clase_viitoare = FitnessClass.objects.filter(start_time__gte=now).order_by('start_time')[:3]
             
             if clase_viitoare.exists():
                 clase_text = "<br>".join([f"• <strong>{c.name}</strong> - cu antrenor {c.instructor.last_name if c.instructor else 'Fără'} ({c.start_time.strftime('%d %b, ora %H:%M')})" for c in clase_viitoare])
-                bot_response = f"🗓️ **Următoarele clase programate în sistem sunt:**<br>{clase_text}<br><br>Te poți înscrie la ele direct din pagina de Program!"
+                bot_response = f"**Următoarele clase programate în sistem sunt:**<br>{clase_text}<br><br>Te poți înscrie la ele direct din pagina de Program!"
             else:
                 bot_response = "Momentan nu sunt clase active în program pentru următoarele zile, dar echipa lucrează la actualizarea calendarului. Verifică secțiunea 'Rezervă o clasă' din Home!"
 
-        # 3. LOGICĂ INTELIGENTĂ DE ÎNSCRIERE DIRECTĂ PRIN CHAT
         elif 'inscriere' in user_message_lower or 'înscriere' in user_message_lower or 'rezerva' in user_message_lower or 'rezervă' in user_message_lower:
             # Căutăm dacă utilizatorul a menționat un nume de clasă în mesaj
             now = timezone.now()
@@ -484,13 +600,13 @@ def chatbot_response_view(request):
                 # Verificăm dacă nu cumva are deja rezervare ca să nu duplicăm
                 deja_rezervat = Booking.objects.filter(user=request.user, fitness_class=clasa_gasita).exists()
                 if deja_rezervat:
-                    bot_response = f"🔍 Am verificat în sistem și văd că **ești deja înscris(ă)** la clasa de {clasa_gasita.name} din {clasa_gasita.start_time.strftime('%d %M la %H:%M')}!"
+                    bot_response = f"Am verificat în sistem și văd că **ești deja înscris(ă)** la clasa de {clasa_gasita.name} din {clasa_gasita.start_time.strftime('%d %M la %H:%M')}!"
                 else:
-                    # Îi creăm rezervarea direct din chat! (O funcționalitate uimitoare pentru profesori)
+                    # Îi creăm rezervarea direct din chat
                     Booking.objects.create(user=request.user, fitness_class=clasa_gasita)
-                    bot_response = f"✅ **Succes!** Te-am înscris direct prin comanda vocală/text la clasa de <strong>{clasa_gasita.name}</strong> programată pe {clasa_gasita.start_time.strftime('%d %b la ora %H:%M')}. Te așteptăm la antrenament!"
+                    bot_response = f"**Succes!** Te-am înscris direct prin comanda vocală/text la clasa de <strong>{clasa_gasita.name}</strong> programată pe {clasa_gasita.start_time.strftime('%d %b la ora %H:%M')}. Te așteptăm la antrenament!"
             else:
-                bot_response = "✍️ Pentru a te înscrie direct din chat, spune-mi exact clasa dorită. Ex: _'Vreau o înscriere la Zumba'_ sau _'Rezervă o clasă de Yoga'_. Voi căuta primul interval disponibil!"
+                bot_response = "Pentru a te înscrie direct din chat, spune-mi exact clasa dorită. Ex: _'Vreau o înscriere la Zumba'_ sau _'Rezervă o clasă de Yoga'_. Voi căuta primul interval disponibil!"
 
         return JsonResponse({'response': bot_response})
     return JsonResponse({'error': 'Metodă nepermisă'}, status=400)
