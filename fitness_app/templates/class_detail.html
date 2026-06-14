@@ -7,16 +7,16 @@
             <h1 class="class-title">{{ fitness_class.name }}</h1>
             <span class="badge-type">{{ fitness_class.get_type_display }}</span>
         </div>
-        
+
         <hr class="divider">
 
         <div class="class-info-grid">
             <div class="info-item">
-                <strong>Durată curs:</strong> 
+                <strong>Durată curs:</strong>
                 <span>{{ fitness_class.duration_minutes }} min</span>
             </div>
             <div class="info-item">
-                <strong>Preț per ședință:</strong> 
+                <strong>Preț per ședință:</strong>
                 <span class="price-tag">{{ fitness_class.price }} RON</span>
             </div>
         </div>
@@ -25,11 +25,11 @@
             <a href="{% url 'instructor_detail' fitness_class.instructor.id %}" class="instructor-link">
                 <div class="photo-container">
                     {% if fitness_class.instructor.profile_picture %}
-                        <img src="{{ fitness_class.instructor.profile_picture.url }}" class="profile-img-small">
+                    <img src="{{ fitness_class.instructor.profile_picture.url }}" class="profile-img-small">
                     {% else %}
-                        <div class="placeholder-circle-small">
-                            {{ fitness_class.instructor.first_name|first }}
-                        </div>
+                    <div class="placeholder-circle-small">
+                        {{ fitness_class.instructor.first_name|first }}
+                    </div>
                     {% endif %}
                 </div>
                 <p class="instructor-label">Antrenor: <strong>{{ fitness_class.instructor.first_name }}</strong></p>
@@ -37,29 +37,32 @@
         </div>
 
 
-        <div style="margin-top: 35px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+        <div
+            style="margin-top: 35px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
             <h3 style="color: #2c3e50; margin: 0;">Calendar Ședințe</h3>
-            
+
             {% if available_months %}
             <form method="GET" action="" id="monthFilterForm">
-                <select name="month" id="monthSelect" onchange="document.getElementById('monthFilterForm').submit();" style="padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-weight: 600; color: #2c3e50; cursor: pointer;">
+
+                <select name="month" id="monthSelect" onchange="document.getElementById('monthFilterForm').submit();"
+                    style="padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-weight: 600; color: #2c3e50; cursor: pointer;">
                     {% for month_key, month_name in available_months.items %}
-                        <option value="{{ month_key }}" {% if month_key == selected_month %}selected{% endif %}>
-                            {{ month_name }}
-                        </option>
+                    <option value="{{ month_key }}">{{ month_name }}</option>
                     {% endfor %}
                 </select>
 
-                <select name="day_of_week" id="daySelect" onchange="document.getElementById('monthFilterForm').submit();" style="padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-weight: 600; color: #2c3e50; cursor: pointer;">
-                <option value="all" {% if selected_day == 'all' %}selected{% endif %}>Toate zilele</option>
-                <option value="0" {% if selected_day == '0' %}selected{% endif %}>Luni</option>
-                <option value="1" {% if selected_day == '1' %}selected{% endif %}>Marți</option>
-                <option value="2" {% if selected_day == '2' %}selected{% endif %}>Miercuri</option>
-                <option value="3" {% if selected_day == '3' %}selected{% endif %}>Joi</option>
-                <option value="4" {% if selected_day == '4' %}selected{% endif %}>Vineri</option>
-                <option value="5" {% if selected_day == '5' %}selected{% endif %}>Sâmbătă</option>
-                <option value="6" {% if selected_day == '6' %}selected{% endif %}>Duminică</option>
-            </select>
+                <select name="day_of_week" id="daySelect"
+                    onchange="document.getElementById('monthFilterForm').submit();"
+                    style="padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-weight: 600; color: #2c3e50; cursor: pointer;">
+                    <option value="all">Toate zilele</option>
+                    <option value="0">Luni</option>
+                    <option value="1">Marți</option>
+                    <option value="2">Miercuri</option>
+                    <option value="3">Joi</option>
+                    <option value="4">Vineri</option>
+                    <option value="5">Sâmbătă</option>
+                    <option value="6">Duminică</option>
+                </select>
 
             </form>
             {% endif %}
@@ -67,42 +70,46 @@
 
         <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
             {% for session in sessions %}
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
-                    <div>
-                        <span style="font-weight: bold; color: #2c3e50; font-size: 1.05rem;">
-                            {{ session.start_time|date:"l, d F Y" }} — Ora {{ session.start_time|date:"H:i" }}
-                        </span>
-                        <span style="font-size: 0.85rem; color: #7f8c8d; margin-left: 15px;">
-                            Locuri libere: <span style="font-weight: bold; color: {% if session.available_spots > 0 %}#2ecc71{% else %}#e74c3c{% endif %};">{{ session.available_spots }}</span> / {{ session.max_capacity }}
-                        </span>
-                    </div>
-                    
-                    <div>
-                        {% if session.available_spots > 0 %}
-
-
-
-                            <form action="{% url 'book_class' session.id %}" method="POST" style="display: flex; align-items: center; gap: 10px; margin: 0;">
-                                {% csrf_token %}
-                                
-                                {% if session.is_for_children %}
-                                    <input type="text" name="child_name" placeholder="nume copil" required
-                                           style="padding: 6px 10px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
-                                {% endif %}
-                                
-                                <button type="submit" style="background-color: #27ae60; color: white; padding: 8px 18px; border: none; border-radius: 4px; font-weight: bold; font-size: 0.85rem; cursor: pointer;">
-                                Rezervă Loc
-                                </button>
-                            </form>
-                        {% else %}
-                            <span style="color: #e74c3c; font-weight: bold; font-size: 0.85rem; background: #fdedec; padding: 5px 10px; border-radius: 4px; display: inline-block;">
-                                Sală Plină
-                            </span>
-                        {% endif %}
-                    </div>
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <div>
+                    <span style="font-weight: bold; color: #2c3e50; font-size: 1.05rem;">
+                        {{ session.start_time|date:"l, d F Y" }} — Ora {{ session.start_time|date:"H:i" }}
+                    </span>
+                    <span style="font-size: 0.85rem; color: #7f8c8d; margin-left: 15px;">
+                        Locuri libere: <span
+                            style="font-weight: bold; color: {% if session.available_spots > 0 %}#2ecc71{% else %}#e74c3c{% endif %};">
+                            {{ session.available_spots }}
+                        </span> / {{ session.max_capacity }}
+                    </span>
                 </div>
+
+                <div>
+                    {% if session.available_spots > 0 %}
+                    <form action="{% url 'book_class' session.id %}" method="POST"
+                        style="display: flex; align-items: center; gap: 10px; margin: 0;">
+                        {% csrf_token %}
+
+                        {% if session.is_for_children %}
+                        <input type="text" name="child_name" placeholder="nume copil" required
+                            style="padding: 6px 10px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
+                        {% endif %}
+
+                        <button type="submit"
+                            style="background-color: #27ae60; color: white; padding: 8px 18px; border: none; border-radius: 4px; font-weight: bold; font-size: 0.85rem; cursor: pointer;">
+                            Rezervă Loc
+                        </button>
+                    </form>
+                    {% else %}
+                    <span
+                        style="color: #e74c3c; font-weight: bold; font-size: 0.85rem; background: #fdedec; padding: 5px 10px; border-radius: 4px; display: inline-block;">
+                        Sală Plină
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
             {% empty %}
-                <p style="color: #7f8c8d; text-align: center;">Nu mai sunt ședințe programate pentru această clasă.</p>
+            <p style="color: #7f8c8d; text-align: center;">Nu mai sunt ședințe programate pentru această clasă.</p>
             {% endfor %}
         </div>
 

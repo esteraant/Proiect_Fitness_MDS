@@ -28,7 +28,7 @@ class User(AbstractUser):
     profile_picture = models.ImageField(upload_to='instructors/', null=True, blank=True)
 
 
-# Tabelul pentru sali
+# tabelul pentru sali
 class Room(models.Model):
     ROOM_TYPES = [
         ('GYM', 'Sala Mare'),
@@ -43,7 +43,7 @@ class Room(models.Model):
 
 
 
-# Tabelul pentru abonamente, cu sistem de inghetare
+# tabelul pentru abonamente, cu sistem de inghetare
 class Subscription(models.Model):
     # un user poate avea un singur abonament activ
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -64,7 +64,7 @@ class Subscription(models.Model):
     discount_applied = models.DecimalField(max_digits=5, decimal_places=2, default=0)
 
 
-# Tabelul pentru clase, cu limita de persoane si categorii
+# tabelul pentru clase, cu limita de persoane si categorii
 class FitnessClass(models.Model):
     CLASS_TYPES = [
         ('1TO1', 'Personal Training'),
@@ -80,11 +80,12 @@ class FitnessClass(models.Model):
         null=True, blank=True
     )
 
-    # ne asiguram ca putem alege doar instructorii cand cream o clasa
     max_capacity = models.PositiveIntegerField()
     is_for_women_only = models.BooleanField(default=False)
     is_for_children = models.BooleanField(default=False)
     start_time = models.DateTimeField()
+    price = models.DecimalField(max_digits=6, decimal_places=2, default=30.00)
+    duration_minutes = models.PositiveIntegerField(default=60)
 
     @property
     def available_spots(self):
@@ -104,7 +105,7 @@ class FitnessClass(models.Model):
 
 
 
-# Tabelul pentru rezervari, Early Bird si Check-in
+# tabelul pentru rezervari, early bird si check-in
 class Booking(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     fitness_class = models.ForeignKey(FitnessClass, on_delete=models.CASCADE)
@@ -115,7 +116,7 @@ class Booking(models.Model):
     child_name = models.CharField(max_length=100, blank=True, null=True)
 
     
-# Tabelul pentru recenzii
+# tabelul pentru recenzii
 class Review(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     fitness_class = models.ForeignKey(FitnessClass, on_delete=models.CASCADE)
@@ -164,7 +165,7 @@ class Notification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
-# Tabelul cu sesiunea
+# tabelul cu sesiunea
 class GymSession(models.Model):
     SESSION_TYPES = [
         ('FREE', 'Liber'),
@@ -182,6 +183,7 @@ class GymSession(models.Model):
     end_time = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
+        # sesiunea 1-la-1 dureaza 90 de minute, accesul liber 60 de minute
         duration = 90 if self.session_type == '1TO1' else 60
         self.end_time = self.start_time + timedelta(minutes=duration)
         super().save(*args, **kwargs)

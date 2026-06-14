@@ -14,11 +14,10 @@
             <i class="fa-solid fa-snowflake"></i> Înghețat (Până la {{ subscription.end_date }})
         </span>
         {% else %}
-            <span class="status-badge status-active">
-                <i class="fa-solid fa-check-circle"></i> Activ (Expiră pe {{ subscription.end_date }})
-            </span>
+        <span class="status-badge status-active">
+            <i class="fa-solid fa-check-circle"></i> Activ (Expiră pe {{ subscription.end_date }})
+        </span>
         {% endif %}
-
         {% else %}
         <span class="status-badge status-none">
             <i class="fa-solid fa-times-circle"></i> Fără abonament activ
@@ -38,28 +37,27 @@
     </div>
 </div>
 
-<!-- GRADE DE OCUPARE -->
 <div class="occupancy-section">
     <h3><i class="fa-solid fa-chart-bar"></i> Grad de Ocupare Săli</h3>
 
-    <!-- Sala Mare -->
     {% if sala_mare %}
     <div class="occupancy-card">
         <div class="occupancy-header">
             <span class="room-name">{{ sala_mare.name }}</span>
-            <span class="occupancy-pct {% if ocupare_sala_mare >= 80 %}pct-red{% elif ocupare_sala_mare >= 50 %}pct-orange{% else %}pct-green{% endif %}">
+            <span
+                class="occupancy-pct {% if ocupare_sala_mare >= 80 %}pct-red{% elif ocupare_sala_mare >= 50 %}pct-orange{% else %}pct-green{% endif %}">
                 {{ ocupare_sala_mare }}%
             </span>
         </div>
         <div class="progress-bar-track">
-            <div class="progress-bar-fill  {% if ocupare_sala_mare >= 80 %}fill-red{% elif ocupare_sala_mare >= 50 %}fill-orange{% else %}fill-green{% endif %}" style="width: {{ ocupare_sala_mare }}%;">
+            <div class="progress-bar-fill {% if ocupare_sala_mare >= 80 %}fill-red{% elif ocupare_sala_mare >= 50 %}fill-orange{% else %}fill-green{% endif %}"
+                style="width: {{ ocupare_sala_mare }}%;">
             </div>
         </div>
         <small>{{ locuri_libere_gym }} locuri libere din {{ sala_mare.capacity }}</small>
     </div>
     {% endif %}
 
-    <!-- Sali de Grup -->
     {% for sala in sali_info %}
     <div class="occupancy-card">
         <div class="occupancy-header">
@@ -88,7 +86,6 @@
     {% endfor %}
 </div>
 
-<!-- AI DASHBOARD -->
 <div class="ai-dashboard-card" style="
     background: #ffffff; 
     padding: 30px; 
@@ -133,7 +130,8 @@
             </p>
         </div>
 
-        <div class="ai-card-info" style="display: flex; align-items: flex-start; gap: 15px; {% if show_freeze_reminder %}padding-bottom: 15px; border-bottom: 1px solid #f1f2f6;{% endif %}">
+        <div class="ai-card-info"
+            style="display: flex; align-items: flex-start; gap: 15px; {% if show_freeze_reminder %}padding-bottom: 15px; border-bottom: 1px solid #f1f2f6;{% endif %}">
             <span class="ai-badge ai-badge-green" style="
                 background-color: #27ae60; 
                 color: white; 
@@ -150,28 +148,39 @@
         </div>
 
         {% if show_freeze_reminder %}
-        <div class="ai-card-warning" style="
-            background-color: #fff9e6; 
-            border-left: 4px solid #f39c12; 
-            padding: 20px; 
-            border-radius: 10px;
-            margin-top: 5px;
+        <div class="alert alert-warning" style="
+            background-color: #fff3cd; 
+            color: #856404; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-top: 5px; 
+            border-left: 5px solid #e67e22; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px;
         ">
-            <p style="margin: 0 0 15px 0; color: #7f8c8d; font-size: 0.98rem; line-height: 1.5;">
-                {{ ai_freeze_prompt }}
-            </p>
-            <div class="ai-warning-actions">
-                <a href="{% url 'profile' %}" class="ai-link-warning" style="
-                    display: inline-block;
-                    background-color: #f39c12;
-                    color: white;
-                    text-decoration: none;
-                    padding: 10px 20px;
-                    border-radius: 8px;
-                    font-size: 0.9rem;
-                    font-weight: 600;
+            <div
+                style="font-size: 0.95rem; line-height: 1.5; display: flex; align-items: center; gap: 8px; color: #856404;">
+
+                <i class="fa-solid fa-triangle-exclamation" style="color: #e67e22; font-size: 1.1rem;"></i>
+
+                <span>{{ ai_freeze_prompt|safe }}</span>
+            </div>
+
+            <div>
+                <a href="{% url 'profile' %}" style="
+                    background-color: #e67e22; 
+                    color: white; 
+                    padding: 6px 12px; 
+                    border-radius: 4px; 
+                    text-decoration: none; 
+                    font-weight: bold; 
+                    display: inline-flex; 
+                    align-items: center; 
+                    gap: 6px;
+                    font-size: 0.85rem;
                     transition: background 0.2s ease;
-                " onmouseover="this.style.backgroundColor='#d35400'" onmouseout="this.style.backgroundColor='#f39c12'">
+                " onmouseover="this.style.backgroundColor='#d35400'" onmouseout="this.style.backgroundColor='#e67e22'">
                     <i class="fa-solid fa-snowflake"></i> Mergi la Profil pentru înghețare
                 </a>
             </div>
@@ -180,7 +189,6 @@
 
     </div>
 </div>
-
 
 <h2>Ce vrei să facem azi?</h2>
 <div class="grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch;">
