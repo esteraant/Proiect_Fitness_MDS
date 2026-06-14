@@ -79,9 +79,21 @@
                     
                     <div>
                         {% if session.available_spots > 0 %}
-                            <a href="{% url 'book_class' session.id %}" class="btn-ocean" style="background-color: #27ae60; color: white; padding: 8px 18px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 0.85rem; display: inline-block;">
+
+
+
+                            <form action="{% url 'book_class' session.id %}" method="POST" style="display: flex; align-items: center; gap: 10px; margin: 0;">
+                                {% csrf_token %}
+                                
+                                {% if session.is_for_children %}
+                                    <input type="text" name="child_name" placeholder="nume copil" required
+                                           style="padding: 6px 10px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
+                                {% endif %}
+                                
+                                <button type="submit" style="background-color: #27ae60; color: white; padding: 8px 18px; border: none; border-radius: 4px; font-weight: bold; font-size: 0.85rem; cursor: pointer;">
                                 Rezervă Loc
-                            </a>
+                                </button>
+                            </form>
                         {% else %}
                             <span style="color: #e74c3c; font-weight: bold; font-size: 0.85rem; background: #fdedec; padding: 5px 10px; border-radius: 4px; display: inline-block;">
                                 Sală Plină

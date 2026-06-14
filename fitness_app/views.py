@@ -31,6 +31,7 @@ def home_view(request):
     subscription = Subscription.objects.filter(user=request.user).first()
     
     now = timezone.now()
+    today = now.date()
 
     is_subscription_active = False
     if subscription:
@@ -42,7 +43,18 @@ def home_view(request):
         else:
             is_subscription_active = True
 
-    attended_count = Booking.objects.filter(user=request.user, attended=True).count()
+    clase_frecventate = Booking.objects.filter(user=request.user, attended=True).count()
+
+    sesiuni_individuale = GymSession.objects.filter(user=request.user, start_time__lte=now).count()
+  
+    attended_count = clase_frecventate + sesiuni_individuale
+    # calculam progresul pentru saptamana curenta ca sa il comparam cu obiectivul saptamanal
+    start_of_week = now - timedelta(days=now.weekday())
+    start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+    clase_saptamana = Booking.objects.filter(user=request.user, attended=True, fitness_class__start_time__gte=start_of_week).count()
+    sesiuni_saptamana = GymSession.objects.filter(user=request.user, start_time__gte=start_of_week).count()
+    antrenamente_saptamana_curenta = clase_saptamana + sesiuni_saptamana
+
     # Agent AI - analiza si predictie
    
  # --- SALA MARE ---
@@ -129,7 +141,9 @@ def home_view(request):
 
     context = {
         'subscription': subscription,
+        'is_subscription_active': is_subscription_active,
         'attended_count': attended_count,
+        'antrenamente_saptamana_curenta': antrenamente_saptamana_curenta,
         'sala_mare': sala_mare,
         'ocupare_sala_mare': ocupare_sala_mare,
         'locuri_libere_gym': locuri_libere_gym,
@@ -227,6 +241,8 @@ def add_review_view(request, class_id):
 def book_class(request, class_id):
     fitness_class = get_object_or_404(FitnessClass, id=class_id)
     user = request.user
+
+    
     
     if fitness_class.available_spots <= 0:
         messages.error(request, "Din păcate, nu mai sunt locuri disponibile la această clasă.")
@@ -241,10 +257,18 @@ def book_class(request, class_id):
     if fitness_class.is_for_children and hasattr(user, 'is_child') and not user.is_child:
         is_booking_for_child = True
 
-    # verificam sa nu fie deja inscris
-    already_booked = Booking.objects.filter(user=user, fitness_class=fitness_class).exists()
+    nume_copil = ""
+    if request.method == 'POST':
+        nume_copil = request.POST.get('child_name', '').strip()
+
+    # verificam daca exista deja o rezervare pentru acest copil specific sau pentru parinte
+    if fitness_class.is_for_children and nume_copil:
+        already_booked = Booking.objects.filter(user=user, fitness_class=fitness_class, child_name__iexact=nume_copil).exists()
+    else:
+        already_booked = Booking.objects.filter(user=user, fitness_class=fitness_class, child_name__isnull=True).exists()
+        
     if already_booked:
-        messages.warning(request, "Ești deja înscris la această clasă!")
+        messages.warning(request, "Exista deja o inscriere activa pentru acest copil la clasa selectata!")
         return redirect('fitness_classes_list')
     
 
@@ -258,10 +282,10 @@ def book_class(request, class_id):
         b_end_time = b.fitness_class.start_time + timedelta(minutes=int(b_duration))
         
         if fitness_class.start_time < b_end_time and clasa_end_time > b.fitness_class.start_time:
-            # parintele poate asista in paralel la alta clasa
-            if is_booking_for_child and not getattr(b, 'is_for_child', False):
+            if is_booking_for_child and b.child_name != nume_copil:
                 continue
-            if not fitness_class.is_for_children and getattr(b, 'is_for_child', False):
+            # daca a inscris un copil si acum vrea sa se inscrie pe el, mergem mai departe
+            if not fitness_class.is_for_children and b.child_name is not None:
                 continue
                 
             messages.error(request, f"Suprapunere de orar! Te-ai înscris deja la clasa '{b.fitness_class.name}' în acest interval.")
@@ -298,10 +322,11 @@ def book_class(request, class_id):
             return redirect('profile')
 
     
-    noua_rezervare = Booking.objects.create(user=request.user, fitness_class=fitness_class)
-    if is_booking_for_child and hasattr(noua_rezervare, 'is_for_child'):
-        noua_rezervare.is_for_child = True
-        noua_rezervare.save()
+    noua_rezervare = Booking.objects.create(
+        user=request.user,
+        fitness_class=fitness_class,
+        child_name=nume_copil if is_booking_for_child else None
+    )
     messages.success(request, "Loc rezervat cu succes!")
     return redirect('fitness_classes_list')
 
