@@ -14,10 +14,11 @@
             <i class="fa-solid fa-snowflake"></i> Înghețat (Până la {{ subscription.end_date }})
         </span>
         {% else %}
-        <span class="status-badge status-active">
-            <i class="fa-solid fa-check-circle"></i> Activ (Expiră pe {{ subscription.end_date }})
-        </span>
+            <span class="status-badge status-active">
+                <i class="fa-solid fa-check-circle"></i> Activ (Expiră pe {{ subscription.end_date }})
+            </span>
         {% endif %}
+
         {% else %}
         <span class="status-badge status-none">
             <i class="fa-solid fa-times-circle"></i> Fără abonament activ
@@ -29,11 +30,11 @@
 <div class="grid" style="margin-bottom: 2rem;">
     <div class="card" style="border-bottom: 4px solid #1f5b97;">
         <h4 style="margin:0; color: #7f8c8d;">Antrenamente efectuate</h4>
-        <h2 style="margin: 10px 0;">{{ attended_count }}</h2>
+        <h2 style="margin: 10px 0;">{{ attended_count }} ședințe</h2>
     </div>
     <div class="card" style="border-bottom: 4px solid #4d6c8a;">
         <h4 style="margin:0; color: #7f8c8d;">Obiectiv Săptămânal</h4>
-        <h2 style="margin: 10px 0;">{{ user.frequency_per_week }} ședințe</h2>
+        <h2 style="margin: 10px 0;">{{ antrenamente_saptamana_curenta }} / {{ user.frequency_per_week }}</h2>
     </div>
 </div>
 
@@ -46,16 +47,12 @@
     <div class="occupancy-card">
         <div class="occupancy-header">
             <span class="room-name">{{ sala_mare.name }}</span>
-            <span
-                class="occupancy-pct {% if ocupare_sala_mare >= 80 %}pct-red{% elif ocupare_sala_mare >= 50 %}pct-orange{% else %}pct-green{% endif %}">
+            <span class="occupancy-pct {% if ocupare_sala_mare >= 80 %}pct-red{% elif ocupare_sala_mare >= 50 %}pct-orange{% else %}pct-green{% endif %}">
                 {{ ocupare_sala_mare }}%
             </span>
         </div>
         <div class="progress-bar-track">
-            <div class="progress-bar-fill 
-                {% if ocupare_sala_mare >= 80 %}fill-red
-                {% elif ocupare_sala_mare >= 50 %}fill-orange
-                {% else %}fill-green{% endif %}" style="width: {{ ocupare_sala_mare }}%;">
+            <div class="progress-bar-fill  {% if ocupare_sala_mare >= 80 %}fill-red{% elif ocupare_sala_mare >= 50 %}fill-orange{% else %}fill-green{% endif %}" style="width: {{ ocupare_sala_mare }}%;">
             </div>
         </div>
         <small>{{ locuri_libere_gym }} locuri libere din {{ sala_mare.capacity }}</small>
@@ -136,11 +133,7 @@
             </p>
         </div>
 
-        <div class="ai-card-info" style="
-            display: flex; 
-            align-items: flex-start; 
-            gap: 15px;
-            {% if show_freeze_reminder %} padding-bottom: 15px; border-bottom: 1px solid #f1f2f6; {% endif %}">
+        <div class="ai-card-info" style="display: flex; align-items: flex-start; gap: 15px; {% if show_freeze_reminder %}padding-bottom: 15px; border-bottom: 1px solid #f1f2f6;{% endif %}">
             <span class="ai-badge ai-badge-green" style="
                 background-color: #27ae60; 
                 color: white; 

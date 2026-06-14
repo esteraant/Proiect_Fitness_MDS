@@ -112,10 +112,9 @@ class Booking(models.Model):
     is_early_bird = models.BooleanField(default=False)
     attended = models.BooleanField(default=False) 
     check_in_time = models.DateTimeField(null=True, blank=True)
+    child_name = models.CharField(max_length=100, blank=True, null=True)
 
-    class Meta:
-        unique_together = ('user', 'fitness_class')
-
+    
 # Tabelul pentru recenzii
 class Review(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
