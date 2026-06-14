@@ -55,7 +55,7 @@ def home_view(request):
     sesiuni_saptamana = GymSession.objects.filter(user=request.user, start_time__gte=start_of_week).count()
     antrenamente_saptamana_curenta = clase_saptamana + sesiuni_saptamana
 
-    # Agent AI - analiza si predictie
+    # agent AI - analiza si predictie
    
  # --- SALA MARE ---
     sala_mare = Room.objects.filter(room_type='GYM').first()
@@ -99,7 +99,7 @@ def home_view(request):
                 'max': sala.capacity,
             })
 
-    # --- AI PREDICȚIE INTERVAL DE VÂRF ---
+    # AI predictie interval de varf
     peak_classes = FitnessClass.objects.filter(
         start_time__date=now.date(),
         start_time__hour__gte=18,
@@ -115,7 +115,7 @@ def home_view(request):
         occupancy_rate = 70 + (request.user.id % 15)
     ai_occupancy_prompt = f"Sala va fi la {occupancy_rate}% capacitate între orele 18:00 - 20:00. Îți recomandăm un antrenament la ora 16:30 pentru a evita aglomerația."
 
-    # --- AI RECOMANDARE ---
+    # AI recomandare
     goal = (request.user.fitness_goal or "").lower()
     if any(k in goal for k in ["slăbire", "slabi", "cardio", "greutate", "kilograme", "aerobic"]):
         ai_recommendation = "Pe baza obiectivului tău de slăbire și cardio, AI îți recomandă: Zumba, HIIT sau Aerobic!"
@@ -126,7 +126,7 @@ def home_view(request):
     else:
         ai_recommendation = "Completează-ți obiectivul în Profil pentru recomandări personalizate! Momentan: HIIT pentru energie și Pilates pentru postură."
 
-    # --- AI REMINDER ÎNGHEȚARE ---
+    # AI recomandare inghetare
     last_booking = Booking.objects.filter(user=request.user, attended=True).order_by('-booking_time').first()
     if last_booking:
         days_inactive = (now - last_booking.booking_time).days
@@ -137,7 +137,15 @@ def home_view(request):
     ai_freeze_prompt = ""
     if days_inactive >= 5 and subscription and not subscription.is_frozen:
         show_freeze_reminder = True
-        ai_freeze_prompt = f"⚠️ Observăm că au trecut {days_inactive} zile de la ultimul tău antrenament. Pentru a nu pierde valabilitatea abonamentului, îți recomandăm să revii la sală sau poți opta pentru înghețarea acestuia direct din Profil!"
+        ai_freeze_prompt = f"Observăm că au trecut {days_inactive} zile de la ultimul tău antrenament. Pentru a nu pierde valabilitatea abonamentului, îți recomandăm să revii la sală sau poți opta pentru înghețarea acestuia direct din Profil!"
+    sesiuni_1la1 = GymSession.objects.filter(
+        user=request.user,
+        session_type='1TO1'
+    ).order_by('start_time')
+
+    # toate rezervarile la clase de grup
+    rezervari_clase = Booking.objects.filter(user=request.user).order_by('fitness_class__start_time')
+
 
     context = {
         'subscription': subscription,
@@ -152,6 +160,9 @@ def home_view(request):
         'ai_recommendation': ai_recommendation,
         'show_freeze_reminder': show_freeze_reminder,
         'ai_freeze_prompt': ai_freeze_prompt,
+
+        'sesiuni_1la1': sesiuni_1la1,
+        'rezervari_clase': rezervari_clase,
     }
     return render(request, 'home.html', context)
 
@@ -161,7 +172,7 @@ def profile_view(request):
     user = request.user
     subscription = Subscription.objects.filter(user=user).first()
     
-    # --- CALCULUL ZILELOR RAMASE ---
+    # calculul zilelor ramase
     days_left = 0
     if subscription:
         end_date = subscription.start_date + timedelta(days=30)
@@ -296,7 +307,7 @@ def book_class(request, class_id):
         if hasattr(user, 'is_child') and not user.is_child:
             messages.info(request, "Notă: Ai rezervat un loc pentru copilul tău la această clasă specială.")
     else:
-        # Daca clasa este de adulti standard, blocam conturile de copii direct
+        # daca clasa este de adulti standard, blocam conturile de copii direct
         if hasattr(user, 'is_child') and user.is_child:
             messages.error(request, "Conturile de copii nu pot efectua rezervări la clasele de adulți. Înscrierea trebuie făcută de un părinte!")
             return redirect('fitness_classes_list')
@@ -377,6 +388,14 @@ def book_1to1_view(request, instructor_id):
         try:
             slot_start = timezone.make_aware(datetime.strptime(slot_str, '%Y-%m-%d %H:%M'))
             slot_end = slot_start + timedelta(minutes=90)
+            # verificam daca a trecut intervalul
+            if slot_start <= now + timedelta(minutes=30):
+                messages.error(request, "Eroare la rezervare: Intervalul selectat a trecut deja!")
+                context = {
+                    'instructor': instructor,
+                    'slots': slots,
+                }
+                return render(request, 'book_1to1.html', context)
             
             instructor_ocupat = GymSession.objects.filter(
                 instructor=instructor,
@@ -575,7 +594,7 @@ def register_view(request):
             birth_date = form.cleaned_data.get('birth_date')
             
             if birth_date:
-                # Calculăm vârsta exactă
+                # calculam varsta exacta
                 today = date.today()
                 age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
                 # setam automat campul is_child in functie de varsta calculata
@@ -603,7 +622,7 @@ def classes_view(request):
             
     return render(request, 'classes.html', {'fitness_classes': unique_classes})
 
-# Pagina de detalii
+# pagina de detalii
 def class_detail_view(request, class_id):
     fitness_class = get_object_or_404(FitnessClass, id=class_id)
     now = timezone.now()
@@ -663,7 +682,7 @@ def admin_dashboard_view(request):
     recent_bookings = Booking.objects.all().order_by('-id')[:5] 
     # ultimele 5 rezervari
 
-    # Singleton
+    # singleton
     gym_config = GymSystemConfig()
 
     context = {
@@ -704,7 +723,7 @@ def generate_recurrent_classes_view(request):
             room = Room.objects.filter(room_type='GYM').first() # Sala Mare automat
             # Pentru individual nu generam recurent in calendarul de clase
         else:
-            # Pentru clasele de grup, preluam sala selectata din formular
+            # pentru clasele de grup, preluam sala selectata din formular
             room_id = request.POST.get('room')
             if room_id:
                 room = Room.objects.filter(id=room_id).first()
@@ -801,7 +820,7 @@ def chatbot_response_view(request):
         user_message = data.get('message', '').strip()
         user_message_lower = user_message.lower()
         
-        # Răspunsul implicit al chatbot-ului
+        # raspunsul implicit al chatbot ului
         bot_response = "Sunt asistentul tău virtual AlgoRhythm AI. Te pot ajuta cu informații despre tarife, orarul claselor sau înscrieri rapide! Încearcă să mă întrebi: 'Ce tarife aveți?' sau 'Care este programul?'."
         
         if any(cuvant in user_message_lower for cuvant in ['tarif', 'tarife', 'pret', 'preț', 'abonament', 'cost', 'bani']):
@@ -818,7 +837,6 @@ def chatbot_response_view(request):
                 bot_response = "Momentan nu sunt clase active în program pentru următoarele zile, dar echipa lucrează la actualizarea calendarului. Verifică secțiunea 'Rezervă o clasă' din Home!"
 
         elif 'inscriere' in user_message_lower or 'înscriere' in user_message_lower or 'rezerva' in user_message_lower or 'rezervă' in user_message_lower:
-            # Căutăm dacă utilizatorul a menționat un nume de clasă în mesaj
             now = timezone.now()
             clasa_gasita = None
             
@@ -830,12 +848,12 @@ def chatbot_response_view(request):
                 clasa_gasita = FitnessClass.objects.filter(name__icontains='Aerobic', start_time__gte=now).first()
                 
             if clasa_gasita:
-                # Verificăm dacă nu cumva are deja rezervare ca să nu duplicăm
+                # verificam daca are deja rezervare
                 deja_rezervat = Booking.objects.filter(user=request.user, fitness_class=clasa_gasita).exists()
                 if deja_rezervat:
                     bot_response = f"Am verificat în sistem și văd că **ești deja înscris(ă)** la clasa de {clasa_gasita.name} din {clasa_gasita.start_time.strftime('%d %M la %H:%M')}!"
                 else:
-                    # Îi creăm rezervarea direct din chat
+                    # ii creeam rezervarea direct din chat
                     Booking.objects.create(user=request.user, fitness_class=clasa_gasita)
                     bot_response = f"**Succes!** Te-am înscris direct prin comanda vocală/text la clasa de <strong>{clasa_gasita.name}</strong> programată pe {clasa_gasita.start_time.strftime('%d %b la ora %H:%M')}. Te așteptăm la antrenament!"
             else:

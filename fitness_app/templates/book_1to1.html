@@ -10,7 +10,7 @@
             <div class="placeholder-circle-small">{{ instructor.first_name|first }}</div>
         {% endif %}
         <div>
-            <h2 style="margin: 0;">Rezerva sesiune 1-la-1</h2>
+            <h2 style="margin: 0;">Rezervă sesiune 1-la-1</h2>
             <p style="margin: 4px 0 0; color: #7f8c8d;">
                 cu <strong>{{ instructor.first_name }} {{ instructor.last_name }}</strong>
                 &mdash; {{ instructor.experience_years }} ani experienta
@@ -49,7 +49,7 @@
 ">
     <i class="fa-solid fa-circle-info"></i>
     Durata unei sesiuni de personal training este de <strong>90 de minute</strong>.
-    Rezervarea se face automat, fara confirmare din partea instructorului.
+    Rezervarea se face automat, fără confirmare din partea instructorului.
 </div>
 
 <!-- selectie zi -->
@@ -149,13 +149,13 @@
                 transition: all 0.3s;
             "
         >
-            <i class="fa-solid fa-dumbbell"></i> Rezerva sesiunea
+            <i class="fa-solid fa-dumbbell"></i> Rezervă sesiunea
         </button>
     </form>
 </div>
 
 <a href="{% url 'instructor_detail' instructor.id %}" class="btn-back" style="margin-top: 1rem; display: inline-flex;">
-    <i class="fa-solid fa-arrow-left" style="margin-right: 8px;"></i> Inapoi la profil instructor
+    <i class="fa-solid fa-arrow-left" style="margin-right: 8px;"></i> Înapoi la profil instructor
 </a>
 
 <script>
