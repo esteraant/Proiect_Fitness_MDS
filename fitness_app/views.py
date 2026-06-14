@@ -331,6 +331,214 @@ def book_class(request, class_id):
     return redirect('fitness_classes_list')
 
 
+
+@login_required
+def book_1to1_view(request, instructor_id):
+    instructor = get_object_or_404(User, id=instructor_id, role='INS')
+    now = timezone.now()
+    
+    # generam sloturile disponibile pentru urmatoarele 7 zile () e de 90 min, intre 08:00 si 21:00)
+    slots = []
+    for day_offset in range(7):
+        day = now.date() + timedelta(days=day_offset)
+        for hour in range(8, 21):
+            slot_start = timezone.make_aware(
+                datetime.combine(day, datetime.min.time().replace(hour=hour))
+            )
+            slot_end = slot_start + timedelta(minutes=90)
+            
+            # verificam daca instructorul e liber
+            instructor_ocupat = GymSession.objects.filter(
+                instructor=instructor,
+                start_time__lt=slot_end,
+                end_time__gt=slot_start
+            ).exists()
+            
+            # verificam daca instructorul nu e la o clasa de grup
+            clasa_ocupata = FitnessClass.objects.filter(
+                instructor=instructor,
+                start_time__lt=slot_end,
+                start_time__gte=slot_start - timedelta(hours=2)
+            ).exists()
+            
+            # verificam capacitatea salii mari
+            sala_mare = Room.objects.filter(room_type='GYM').first()
+            sesiuni_la_ora = GymSession.objects.filter(
+                start_time__lt=slot_end,
+                end_time__gt=slot_start
+            ).count()
+            sala_plina = sala_mare and sesiuni_la_ora >= sala_mare.capacity
+            
+            if not instructor_ocupat and not clasa_ocupata and not sala_plina:
+                slots.append(slot_start)
+    
+    if request.method == 'POST':
+        slot_str = request.POST.get('slot')
+        try:
+            slot_start = timezone.make_aware(datetime.strptime(slot_str, '%Y-%m-%d %H:%M'))
+            slot_end = slot_start + timedelta(minutes=90)
+            
+            instructor_ocupat = GymSession.objects.filter(
+                instructor=instructor,
+                start_time__lt=slot_end,
+                end_time__gt=slot_start
+            ).exists()
+            
+            deja_rezervat = GymSession.objects.filter(
+                user=request.user,
+                start_time__lt=slot_end,
+                end_time__gt=slot_start
+            ).exists()
+            
+            if instructor_ocupat:
+                messages.error(request, "Instructorul nu mai este disponibil la această oră.")
+            elif deja_rezervat:
+                messages.error(request, "Ai deja o sesiune rezervată în acest interval.")
+            else:
+                GymSession.objects.create(
+                    user=request.user,
+                    instructor=instructor,
+                    session_type='1TO1',
+                    start_time=slot_start
+                )
+                messages.success(request, f"Sesiune 1-la-1 rezervată cu {instructor.first_name} {instructor.last_name}!")
+                return redirect('instructor_detail', instructor_id=instructor_id)
+        except Exception as e:
+            messages.error(request, f"Eroare la rezervare: {str(e)}")
+    
+    context = {
+        'instructor': instructor,
+        'slots': slots,
+    }
+    return render(request, 'book_1to1.html', context)
+
+
+@login_required
+def gym_free_session_view(request):
+    sala_mare = Room.objects.filter(room_type='GYM').first()
+    now = timezone.now()
+    today = now.date()
+
+    # generam sloturi pentru urmatoarele 5 zile inclusiv azi
+    toate_zilele = []
+    for day_offset in range(6):
+        zi = today + timedelta(days=day_offset)
+        zi_saptamana = zi.weekday()
+        
+        if zi_saptamana <= 4:  # luni - vineri
+            ora_start = 7
+            ora_end_minute = 21 * 60 + 30
+        else:  # sambata, duminica
+            ora_start = 7
+            ora_end_minute = 16 * 60 + 30
+
+        sloturi_zi = []
+        minute_curent = ora_start * 60
+
+        while minute_curent <= ora_end_minute:
+            h = minute_curent // 60
+            m = minute_curent % 60
+
+            slot_start = timezone.make_aware(
+                datetime.combine(zi, datetime.min.time().replace(hour=h, minute=m))
+            )
+            slot_end = slot_start + timedelta(minutes=90)
+
+            # minim 30 de minute inainte de momentul curent
+            disponibil_temporal = slot_start >= now + timedelta(minutes=30)
+
+            sesiuni = GymSession.objects.filter(
+                start_time__lt=slot_end,
+                end_time__gt=slot_start
+            ).count()
+            capacitate = sala_mare.capacity if sala_mare else 40
+            sala_plina = sesiuni >= capacitate
+
+            # verificam daca userul curent are deja o sesiune care se suprapune
+            user_suprapunere = GymSession.objects.filter(
+                user=request.user,
+                start_time__lt=slot_end,
+                end_time__gt=slot_start
+            ).exists()
+
+            sloturi_zi.append({
+                'ora': f'{h:02d}:{m:02d}',
+                'data': zi.strftime('%Y-%m-%d'),
+                'sesiuni': sesiuni,
+                'capacitate': capacitate,
+                'pct': int((sesiuni / capacitate) * 100) if capacitate > 0 else 0,
+                'liber': disponibil_temporal and not sala_plina and not user_suprapunere,
+                'trecut': not disponibil_temporal,
+                'user_rezervat': user_suprapunere,
+            })
+
+            minute_curent += 15
+
+        zile_ro = {0: 'Luni', 1: 'Marti', 2: 'Miercuri', 3: 'Joi', 4: 'Vineri', 5: 'Sambata', 6: 'Duminica'}
+        luni_ro = {1: 'Ian', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'Mai', 6: 'Iun', 7: 'Iul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'}
+        
+        toate_zilele.append({
+            'data': zi.strftime('%Y-%m-%d'),
+            'label': f"{'Azi' if day_offset == 0 else 'Maine' if day_offset == 1 else zile_ro[zi_saptamana]}, {zi.day} {luni_ro[zi.month]}",
+            'sloturi': sloturi_zi,
+        })
+
+    if request.method == 'POST':
+        ora_str = request.POST.get('ora')
+        data_str = request.POST.get('data')
+        if not data_str or not ora_str:
+            messages.error(request, "Selecteaza o zi si un slot orar.")
+        else:
+            try:
+                zi_selectata = datetime.strptime(data_str, '%Y-%m-%d').date()
+                ora_parts = datetime.strptime(ora_str, '%H:%M').time()
+                slot_start = timezone.make_aware(datetime.combine(zi_selectata, ora_parts))
+                slot_end = slot_start + timedelta(minutes=90)
+
+                if slot_start < now + timedelta(minutes=30):
+                    messages.error(request, "Slotul nu mai este disponibil — rezerva cu cel putin 30 de minute inainte.")
+                else:
+                    sesiuni_la_ora = GymSession.objects.filter(
+                        start_time__lt=slot_end,
+                        end_time__gt=slot_start
+                    ).count()
+
+                    if sala_mare and sesiuni_la_ora >= sala_mare.capacity:
+                        messages.error(request, "Sala este plina la aceasta ora!")
+                    else:
+                        deja_rezervat = GymSession.objects.filter(
+                            user=request.user,
+                            start_time__lt=slot_end,
+                            end_time__gt=slot_start
+                        ).exists()
+                        if deja_rezervat:
+                            messages.error(request, "Ai deja o sesiune rezervata in acest interval!")
+                        else:
+                            GymSession.objects.create(
+                                user=request.user,
+                                instructor=None,
+                                session_type='FREE',
+                                start_time=slot_start
+                            )
+                            messages.success(request, f"Loc rezervat in sala mare pe {data_str} la ora {ora_str}!")
+                            return redirect('gym_free_session')
+
+
+                            print(f"DEBUG POST: data={data_str}, ora={ora_str}")
+
+                            
+            except Exception as e:
+                messages.error(request, f"Eroare: {str(e)}")
+
+    context = {
+        'sala_mare': sala_mare,
+        'toate_zilele': toate_zilele,
+        'now': now,
+    }
+    return render(request, 'gym_session.html', context)
+
+
+
 def instructors_view(request):
     instructors = User.objects.filter(role='INS')
     return render(request, 'instructors.html', {'instructors': instructors})

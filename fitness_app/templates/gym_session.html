@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block title %}Sala Mare - AlgoRhythm Gym{% endblock %}
+{% block content %}
+
+<div class="welcome-card" style="margin-bottom: 1.5rem;">
+    <h2 style="margin: 0;"><i class="fa-solid fa-dumbbell"></i> Sala Mare</h2>
+    <p style="margin: 6px 0 0; color: #7f8c8d;">
+        Acces liber la aparate &mdash; capacitate maxima
+        <strong>{{ sala_mare.capacity|default:40 }} persoane</strong>
+        <br>
+        Durata unei sesiuni este de <strong>90 de minute</strong>.
+        Rezervarile se fac cu minimum <strong>30 de minute</strong> inainte.
+    </p>
+</div>
+
+{% if messages %}
+<div style="margin-bottom: 1.5rem;">
+    {% for message in messages %}
+    <div style="
+        padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; font-size: 0.95rem;
+        background: {% if message.tags == 'error' %}#fdecea{% elif message.tags == 'success' %}#eafaf1{% else %}#eaf4fb{% endif %};
+        color: {% if message.tags == 'error' %}#c0392b{% elif message.tags == 'success' %}#1e8449{% else %}#1f5b97{% endif %};
+        border-left: 4px solid {% if message.tags == 'error' %}#e74c3c{% elif message.tags == 'success' %}#27ae60{% else %}#3498db{% endif %};
+    ">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+
+<!-- legenda -->
+<div style="display: flex; gap: 16px; margin-bottom: 1.5rem; font-size: 0.85rem; flex-wrap: wrap;">
+    <span><span style="display:inline-block;width:12px;height:12px;background:#27ae60;border-radius:3px;margin-right:5px;"></span>Disponibil</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:#e67e22;border-radius:3px;margin-right:5px;"></span>Ocupat 50-79%</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:#e74c3c;border-radius:3px;margin-right:5px;"></span>Aproape plin</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:#bdc3c7;border-radius:3px;margin-right:5px;"></span>Trecut / Indisponibil</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:#f0e6ff;border-radius:3px;margin-right:5px;border:1px solid #9b59b6;"></span>Rezervat de tine</span>
+</div>
+
+<!-- tab-uri zile -->
+<div style="display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap;">
+    {% for zi in toate_zilele %}
+    <button
+        onclick="schimbaZi('{{ zi.data }}')"
+        id="tab-{{ zi.data }}"
+        style="
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1.5px solid #dce1e7;
+            background: white;
+            color: #2c3e50;
+            font-size: 0.88rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        "
+    >{{ zi.label }}</button>
+    {% endfor %}
+</div>
+
+<form method="POST" id="form-rezervare">
+    {% csrf_token %}
+    <input type="hidden" name="data" id="input-data" value="">
+
+    {% for zi in toate_zilele %}
+    <div id="zi-{{ zi.data }}" class="zi-panel" style="display: none;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+
+            {% regroup zi.sloturi by ora|slice:":2" as ore_grupate %}
+            {% for grup in ore_grupate %}
+            <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
+
+                <!-- header ora -->
+                <div style="padding: 10px 16px; background: #f8f9fa; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-weight: 700; color: #2c3e50; font-size: 1rem;">{{ grup.grouper }}:00</span>
+                    {% with grup.list|first as primul %}
+                    <div style="flex:1; height:6px; background:#f0f0f0; border-radius:3px; overflow:hidden; max-width:120px;">
+                        <div style="height:100%; width:{{ primul.pct }}%; background:{% if primul.pct >= 80 %}#e74c3c{% elif primul.pct >= 50 %}#e67e22{% else %}#27ae60{% endif %}; border-radius:3px;"></div>
+                    </div>
+                    <span style="font-size:0.8rem; color:#7f8c8d;">{{ primul.sesiuni }}/{{ primul.capacitate }} loc.</span>
+                    {% endwith %}
+                </div>
+
+                <!-- sferturi de ora -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;">
+                    {% for slot in grup.list %}
+                    <label
+                        id="label-{{ zi.data }}-{{ slot.ora|slugify }}"
+                        style="
+                            padding: 12px 8px;
+                            text-align: center;
+                            border-right: 1px solid #f0f0f0;
+                            {% if forloop.last %}border-right: none;{% endif %}
+                            cursor: {% if slot.liber %}pointer{% else %}not-allowed{% endif %};
+                            background: {% if slot.user_rezervat %}#f0e6ff{% elif slot.trecut %}#fafafa{% elif not slot.liber %}#fff5f5{% else %}white{% endif %};
+                            transition: background 0.15s;
+                        "
+                        {% if slot.liber %}
+                        onmouseover="this.style.background='#eaf4fb'"
+                        onmouseout="resetSlot(this, '{{ zi.data }}', '{{ slot.ora }}')"
+                        {% endif %}
+                    >
+                        <input
+                            type="radio"
+                            name="ora"
+                            value="{{ slot.ora }}"
+                            data-data="{{ zi.data }}"
+                            {% if not slot.liber %}disabled{% endif %}
+                            style="display: none;"
+                            onchange="selectSlot(this, '{{ slot.ora }}', '{{ zi.data }}')"
+                        >
+                        <div style="
+                            font-size: 0.95rem; font-weight: 600;
+                            color: {% if slot.user_rezervat %}#9b59b6{% elif slot.trecut %}#bdc3c7{% elif not slot.liber %}#e74c3c{% else %}#2c3e50{% endif %};
+                            margin-bottom: 4px;
+                        ">{{ slot.ora }}</div>
+                        <div style="height:3px; background:#f0f0f0; border-radius:2px; overflow:hidden; margin:0 auto; width:80%;">
+                            <div style="height:100%; width:{{ slot.pct }}%; background:{% if slot.pct >= 80 %}#e74c3c{% elif slot.pct >= 50 %}#e67e22{% else %}#27ae60{% endif %};"></div>
+                        </div>
+                        {% if slot.user_rezervat %}
+                            <div style="font-size:0.7rem; color:#9b59b6; margin-top:3px; font-weight:600;">rezervat</div>
+                        {% elif slot.trecut %}
+                            <div style="font-size:0.7rem; color:#bdc3c7; margin-top:3px;">trecut</div>
+                        {% elif not slot.liber %}
+                            <div style="font-size:0.7rem; color:#e74c3c; margin-top:3px; font-weight:600;">plin</div>
+                        {% else %}
+                            <div style="font-size:0.7rem; color:#27ae60; margin-top:3px;">liber</div>
+                        {% endif %}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- info slot selectat -->
+    <div id="slot-info" style="display:none; margin-top:1.5rem; padding:14px 18px; background:#eafaf1; border-left:4px solid #27ae60; border-radius:8px; font-size:0.95rem; color:#1e8449;">
+        <i class="fa-solid fa-check-circle"></i>
+        Slot selectat: <strong id="slot-text"></strong>
+        &mdash; se termina la <strong id="slot-end-text"></strong>
+    </div>
+
+    <button type="submit" id="btn-rezerva" disabled style="
+        margin-top: 1.5rem; width: 100%; padding: 14px;
+        background: #bdc3c7; color: white; border: none;
+        border-radius: 10px; font-size: 1rem; font-weight: 700;
+        cursor: not-allowed; transition: all 0.3s;
+    ">
+        <i class="fa-solid fa-check"></i> Rezerva locul
+    </button>
+</form>
+
+<a href="{% url 'home' %}" class="btn-back" style="margin-top: 1rem; display: inline-flex;">
+    <i class="fa-solid fa-arrow-left" style="margin-right: 8px;"></i> Inapoi acasa
+</a>
+
+<script>
+    var slotSelectat = null;
+    var dataSelectata = null;
+
+    // afisam prima zi la incarcare
+    document.addEventListener('DOMContentLoaded', function() {
+        var primaZi = document.querySelector('.zi-panel');
+        if (primaZi) {
+            var data = primaZi.id.replace('zi-', '');
+            schimbaZi(data);
+        }
+    });
+
+    function schimbaZi(data) {
+        // ascundem toate zilele
+        document.querySelectorAll('.zi-panel').forEach(function(p) {
+            p.style.display = 'none';
+        });
+        // afisam ziua selectata
+        var panel = document.getElementById('zi-' + data);
+        if (panel) panel.style.display = 'block';
+
+        // stiluri tab-uri
+        document.querySelectorAll('[id^="tab-"]').forEach(function(t) {
+            var activ = t.id === 'tab-' + data;
+            t.style.background = activ ? '#1f5b97' : 'white';
+            t.style.color = activ ? 'white' : '#2c3e50';
+            t.style.borderColor = activ ? '#1f5b97' : '#dce1e7';
+        });
+
+        // resetam selectia daca schimbam ziua
+        if (dataSelectata !== data) {
+            slotSelectat = null;
+            dataSelectata = null;
+            document.getElementById('slot-info').style.display = 'none';
+            var btn = document.getElementById('btn-rezerva');
+            btn.disabled = true;
+            btn.style.background = '#bdc3c7';
+            btn.style.cursor = 'not-allowed';
+        }
+    }
+
+    function selectSlot(radio, ora, data) {
+        slotSelectat = ora;
+        dataSelectata = data;
+
+        // setam input-ul hidden cu data
+        document.getElementById('input-data').value = data;
+
+        // reseteaza toate labelurile din ziua curenta
+        document.querySelectorAll('#zi-' + data + ' input[name=ora]').forEach(function(r) {
+            if (!r.disabled) {
+                r.closest('label').style.background = 'white';
+            }
+        });
+
+        // marcam labelul selectat
+        radio.closest('label').style.background = '#eaf4fb';
+
+        // calculam ora de sfarsit +90 min
+        var parts = ora.split(':');
+        var h = parseInt(parts[0]);
+        var m = parseInt(parts[1]);
+        var totalMin = h * 60 + m + 90;
+        var endH = Math.floor(totalMin / 60);
+        var endM = totalMin % 60;
+        var endStr = (endH < 10 ? '0' : '') + endH + ':' + (endM < 10 ? '0' : '') + endM;
+
+        document.getElementById('slot-text').textContent = data + ' la ' + ora;
+        document.getElementById('slot-end-text').textContent = endStr;
+        document.getElementById('slot-info').style.display = 'block';
+
+        var btn = document.getElementById('btn-rezerva');
+        btn.disabled = false;
+        btn.style.background = '#1f5b97';
+        btn.style.cursor = 'pointer';
+    }
+
+    function resetSlot(el, data, ora) {
+        if (slotSelectat !== ora || dataSelectata !== data) {
+            el.style.background = 'white';
+        }
+    }
+</script>
+
+{% endblock %}

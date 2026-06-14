@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% block title %}Rezerva 1-la-1 cu {{ instructor.first_name }} {{ instructor.last_name }}{% endblock %}
+{% block content %}
+
+<div class="welcome-card" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; align-items: center; gap: 20px;">
+        {% if instructor.profile_picture %}
+            <img src="{{ instructor.profile_picture.url }}" alt="{{ instructor.first_name }}" class="profile-img-small">
+        {% else %}
+            <div class="placeholder-circle-small">{{ instructor.first_name|first }}</div>
+        {% endif %}
+        <div>
+            <h2 style="margin: 0;">Rezerva sesiune 1-la-1</h2>
+            <p style="margin: 4px 0 0; color: #7f8c8d;">
+                cu <strong>{{ instructor.first_name }} {{ instructor.last_name }}</strong>
+                &mdash; {{ instructor.experience_years }} ani experienta
+            </p>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+<div style="margin-bottom: 1.5rem;">
+    {% for message in messages %}
+    <div style="
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        font-size: 0.95rem;
+        background: {% if message.tags == 'error' %}#fdecea{% elif message.tags == 'success' %}#eafaf1{% else %}#eaf4fb{% endif %};
+        color: {% if message.tags == 'error' %}#c0392b{% elif message.tags == 'success' %}#1e8449{% else %}#1f5b97{% endif %};
+        border-left: 4px solid {% if message.tags == 'error' %}#e74c3c{% elif message.tags == 'success' %}#27ae60{% else %}#3498db{% endif %};
+    ">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- info sesiune -->
+<div style="
+    background: #eaf4fb;
+    border-left: 4px solid #1f5b97;
+    padding: 14px 18px;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    color: #1f5b97;
+">
+    <i class="fa-solid fa-circle-info"></i>
+    Durata unei sesiuni de personal training este de <strong>90 de minute</strong>.
+    Rezervarea se face automat, fara confirmare din partea instructorului.
+</div>
+
+<!-- selectie zi -->
+<div class="card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+    <h3 style="margin: 0 0 1rem; color: #2c3e50;">
+        <i class="fa-solid fa-calendar-days"></i> Alege ziua
+    </h3>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;" id="day-tabs">
+        {% for slot in slots %}
+            {% ifchanged slot.date %}
+            <button
+                onclick="filtreazaZi('{{ slot|date:'Y-m-d' }}')"
+                id="tab-{{ slot|date:'Y-m-d' }}"
+                class="day-tab-btn"
+                style="
+                    padding: 8px 16px;
+                    border-radius: 8px;
+                    border: 1.5px solid #dce1e7;
+                    background: white;
+                    color: #2c3e50;
+                    font-size: 0.9rem;
+                    cursor: pointer;
+                    font-weight: 500;
+                    transition: all 0.2s;
+                "
+            >
+                {{ slot|date:'D, d M' }}
+            </button>
+            {% endifchanged %}
+        {% empty %}
+            <p style="color: #7f8c8d;">Nu exista sloturi disponibile pentru urmatoarele 7 zile.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- sloturi orare -->
+<div class="card" style="padding: 1.5rem;">
+    <h3 style="margin: 0 0 1rem; color: #2c3e50;">
+        <i class="fa-solid fa-clock"></i> Alege ora
+    </h3>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div id="slots-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">
+            {% for slot in slots %}
+            <label
+                class="slot-card"
+                data-date="{{ slot|date:'Y-m-d' }}"
+                style="
+                    border: 1.5px solid #dce1e7;
+                    border-radius: 10px;
+                    padding: 12px;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    display: block;
+                "
+                onmouseover="this.style.borderColor='#1f5b97'; this.style.background='#eaf4fb';"
+                onmouseout="resetSlotStyle(this)"
+            >
+                <input
+                    type="radio"
+                    name="slot"
+                    value="{{ slot|date:'Y-m-d' }} {{ slot|date:'H:i' }}"
+                    style="display: none;"
+                    onchange="selecteazaSlot(this)"
+                >
+                <div style="font-size: 1.1rem; font-weight: 700; color: #1f5b97;">{{ slot|date:'H:i' }}</div>
+                <div style="font-size: 0.78rem; color: #7f8c8d; margin-top: 2px;">
+                    {{ slot|date:'H:i' }} &ndash;
+                    <!-- durata 90 min afisata simplu -->
+                    90 min
+                </div>
+            </label>
+            {% endfor %}
+        </div>
+
+        <div id="slot-selectat-info" style="display: none; margin-top: 1.5rem; padding: 14px 18px; background: #eafaf1; border-left: 4px solid #27ae60; border-radius: 8px; font-size: 0.95rem; color: #1e8449;">
+            <i class="fa-solid fa-check-circle"></i> Ai selectat: <strong id="slot-text"></strong>
+        </div>
+
+        <button
+            type="submit"
+            id="btn-rezerva"
+            disabled
+            style="
+                margin-top: 1.5rem;
+                width: 100%;
+                padding: 14px;
+                background: #bdc3c7;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 1rem;
+                font-weight: 700;
+                cursor: not-allowed;
+                transition: all 0.3s;
+            "
+        >
+            <i class="fa-solid fa-dumbbell"></i> Rezerva sesiunea
+        </button>
+    </form>
+</div>
+
+<a href="{% url 'instructor_detail' instructor.id %}" class="btn-back" style="margin-top: 1rem; display: inline-flex;">
+    <i class="fa-solid fa-arrow-left" style="margin-right: 8px;"></i> Inapoi la profil instructor
+</a>
+
+<script>
+    // la incarcare, afisam toate sloturile
+    document.addEventListener('DOMContentLoaded', function() {
+        var tabs = document.querySelectorAll('.day-tab-btn');
+        if (tabs.length > 0) {
+            // activam prima zi automat
+            var primaZi = tabs[0].id.replace('tab-', '');
+            filtreazaZi(primaZi);
+        }
+    });
+
+    function filtreazaZi(data) {
+        // ascundem toate sloturile
+        var toate = document.querySelectorAll('.slot-card');
+        toate.forEach(function(el) {
+            el.style.display = el.getAttribute('data-date') === data ? 'block' : 'none';
+        });
+
+        // marcam tab-ul activ
+        var tabs = document.querySelectorAll('.day-tab-btn');
+        tabs.forEach(function(t) {
+            t.style.background = t.id === 'tab-' + data ? '#1f5b97' : 'white';
+            t.style.color = t.id === 'tab-' + data ? 'white' : '#2c3e50';
+            t.style.borderColor = t.id === 'tab-' + data ? '#1f5b97' : '#dce1e7';
+        });
+    }
+
+    function selecteazaSlot(radio) {
+        // reseteaza toate cardurile
+        document.querySelectorAll('.slot-card').forEach(function(c) {
+            c.style.borderColor = '#dce1e7';
+            c.style.background = 'white';
+        });
+
+        // marcam cardul selectat
+        var card = radio.closest('.slot-card');
+        card.style.borderColor = '#1f5b97';
+        card.style.background = '#eaf4fb';
+
+        // afisam info slot selectat
+        var info = document.getElementById('slot-selectat-info');
+        var text = document.getElementById('slot-text');
+        text.textContent = radio.value;
+        info.style.display = 'block';
+
+        // activam butonul
+        var btn = document.getElementById('btn-rezerva');
+        btn.disabled = false;
+        btn.style.background = '#1f5b97';
+        btn.style.cursor = 'pointer';
+    }
+
+    function resetSlotStyle(el) {
+        // nu reseta daca e selectat
+        var radio = el.querySelector('input[type=radio]');
+        if (!radio.checked) {
+            el.style.borderColor = '#dce1e7';
+            el.style.background = 'white';
+        }
+    }
+</script>
+
+{% endblock %}

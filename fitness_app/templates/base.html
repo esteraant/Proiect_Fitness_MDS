@@ -28,6 +28,7 @@
             <li><a href="{% url 'fitness_classes_list' %}">Program Clase</a></li>
             <li><a href="{% url 'instructors' %}">Instructori</a></li>
             <li><a href="{% url 'profile' %}">Profil</a></li>
+            <li><a href="{% url 'gym_free_session' %}">Sala Mare</a></li>
             {% if user.is_staff %}
             <li><a href="{% url 'admin_dashboard' %}" style="color: white; font-weight: bold;">Management</a></li>
             {% endif %}

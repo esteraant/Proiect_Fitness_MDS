@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    <h2 class="section-title">📅 Clasele predate de {{ instructor.first_name }}</h2>
+    <h2 class="section-title">Clasele predate de {{ instructor.first_name }}</h2>
     <div class="grid">
         {% for class in classes %}
             <a href="{% url 'class_detail' class.id %}">
@@ -36,11 +36,10 @@
             <p>Acest instructor nu are clase programate momentan.</p>
         {% endfor %}
     </div>
-<!-- 
-    <div class="actions" style="margin-top: 30px;">
-        <a href="{% url 'instructors' %}" class="btn-back">
-            <span class="icon">⬅</span> Înapoi la listă
-        </a>
-    </div> -->
+
+    <a href="{% url 'book_1to1' instructor.id %}" class="btn-ocean" style="margin-top: 1rem;">
+        <i class="fa-solid fa-user"></i> Rezerva sesiune 1-la-1
+    </a>
+
 </div>
 {% endblock %}
