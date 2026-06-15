@@ -92,8 +92,8 @@
                             {% if forloop.last %}border-right: none;{% endif %}
                             cursor: {% if slot.liber %}pointer{% else %}not-allowed{% endif %};
                             background: {% if slot.user_rezervat %}#f0e6ff{% elif slot.trecut %}#fafafa{% elif not slot.liber %}#fff5f5{% else %}white{% endif %};
-                            transition: background 0.15s;
-                        "
+                            transition: background 0.15s;"
+                        
                         {% if slot.liber %}
                         onmouseover="this.style.background='#eaf4fb'"
                         onmouseout="resetSlot(this, '{{ zi.data }}', '{{ slot.ora }}')"
@@ -161,10 +161,17 @@
 
     // afisam prima zi la incarcare
     document.addEventListener('DOMContentLoaded', function() {
-        var primaZi = document.querySelector('.zi-panel');
-        if (primaZi) {
-            var data = primaZi.id.replace('zi-', '');
-            schimbaZi(data);
+        var selectedDateFromBackend = "{{ selected_date }}";
+        
+        if (selectedDateFromBackend && document.getElementById('zi-' + selectedDateFromBackend)) {
+            schimbaZi(selectedDateFromBackend);
+        } 
+        else {
+            var primaZi = document.querySelector('.zi-panel');
+            if (primaZi) {
+                var data = primaZi.id.replace('zi-', '');
+                schimbaZi(data);
+            }
         }
     });
 

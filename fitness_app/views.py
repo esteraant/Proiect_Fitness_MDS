@@ -204,6 +204,15 @@ def freeze_subscription(request):
     if subscription:
         subscription.is_frozen = not subscription.is_frozen
         subscription.save()
+        if subscription.is_frozen:
+            now = timezone.now()
+            Booking.objects.filter(user=request.user, fitness_class__start_time__gte=now).delete()
+            GymSession.objects.filter(user=request.user, start_time__gte=now).delete()
+            
+            messages.success(request, "Abonamentul a fost înghețat cu succes! Toate rezervările tale viitoare au fost anulate, iar locurile au fost eliberate.")
+        else:
+            messages.success(request, "Abonamentul a fost reactivat cu succes! Te poți înscrie din nou la antrenamente.")
+            
     return redirect('profile')
 
 @login_required
@@ -253,7 +262,10 @@ def book_class(request, class_id):
     fitness_class = get_object_or_404(FitnessClass, id=class_id)
     user = request.user
 
-    
+    subscription = Subscription.objects.filter(user=request.user).first()
+    if subscription and subscription.is_frozen:
+        messages.error(request, "Abonamentul tău este înghețat! Nu te poți înscrie la clase de grup până nu îl reactivezi din Profil.")
+        return redirect('profile')
     
     if fitness_class.available_spots <= 0:
         messages.error(request, "Din păcate, nu mai sunt locuri disponibile la această clasă.")
@@ -345,6 +357,11 @@ def book_class(request, class_id):
 
 @login_required
 def book_1to1_view(request, instructor_id):
+    subscription = Subscription.objects.filter(user=request.user).first()
+    if subscription and subscription.is_frozen:
+        messages.error(request, "Abonamentul tău este înghețat! Nu te poți înscrie până nu îl reactivezi.")
+        return redirect('profile') 
+
     instructor = get_object_or_404(User, id=instructor_id, role='INS')
     now = timezone.now()
     
@@ -438,6 +455,21 @@ def gym_free_session_view(request):
     now = timezone.now()
     today = now.date()
 
+    url_date_str = request.GET.get('date')
+    if url_date_str:
+        try:
+            zi_ancora = datetime.strptime(url_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            zi_ancora = today
+    else:
+        zi_ancora = today
+
+
+    subscription = Subscription.objects.filter(user=request.user).first()
+    if subscription and subscription.is_frozen:
+        messages.error(request, "Abonamentul tău este înghețat. Dezgheață-l din profil pentru a putea rezerva un loc în Sala Mare!")
+        return redirect('profile')
+
     # generam sloturi pentru urmatoarele 5 zile inclusiv azi
     toate_zilele = []
     for day_offset in range(6):
@@ -466,19 +498,25 @@ def gym_free_session_view(request):
             # minim 30 de minute inainte de momentul curent
             disponibil_temporal = slot_start >= now + timedelta(minutes=30)
 
-            sesiuni = GymSession.objects.filter(
-                start_time__lt=slot_end,
-                end_time__gt=slot_start
-            ).count()
+            sesiuni_active_sala = GymSession.objects.filter(session_type='FREE', start_time__date=zi)
+            sesiuni = 0
+            for s in sesiuni_active_sala:
+                s_start = s.start_time
+                s_end = s.start_time + timedelta(minutes=90)
+                if not (slot_end <= s_start or slot_start >= s_end):
+                    sesiuni += 1
+
             capacitate = sala_mare.capacity if sala_mare else 40
             sala_plina = sesiuni >= capacitate
 
-            # verificam daca userul curent are deja o sesiune care se suprapune
-            user_suprapunere = GymSession.objects.filter(
-                user=request.user,
-                start_time__lt=slot_end,
-                end_time__gt=slot_start
-            ).exists()
+            sesiuni_user_zi_db = GymSession.objects.filter(user=request.user, start_time__date=zi)
+            user_suprapunere = False
+            for s in sesiuni_user_zi_db:
+                s_start = s.start_time
+                s_end = s.start_time + timedelta(minutes=90)
+                if not (slot_end <= s_start or slot_start >= s_end):
+                    user_suprapunere = True
+                    break
 
             sloturi_zi.append({
                 'ora': f'{h:02d}:{m:02d}',
@@ -517,6 +555,23 @@ def gym_free_session_view(request):
                 if slot_start < now + timedelta(minutes=30):
                     messages.error(request, "Slotul nu mai este disponibil — rezerva cu cel putin 30 de minute inainte.")
                 else:
+                    durata_minima = timedelta(minutes=90)
+                    sesiuni_user_zi = GymSession.objects.filter(
+                        user=request.user,
+                        start_time__date=zi_selectata
+                    )
+                    permite_salvare = True
+                    for s in sesiuni_user_zi:
+                        s_end = s.start_time + timedelta(minutes=90)
+                        # daca noul slot incepe sau se termina la o distanta mai mica de 90 min de una existenta
+                        if not (slot_end <= s.start_time or slot_start >= s_end):
+                            permite_salvare = False
+                            break
+                            
+                    if not permite_salvare:
+                        messages.error(request, "Trebuie să lași o pauză de minimum 90 de minute între antrenamentele tale de pe parcursul unei zile!")
+                        return redirect(f"/sala-mare/?date={data_str}")
+                    
                     sesiuni_la_ora = GymSession.objects.filter(
                         start_time__lt=slot_end,
                         end_time__gt=slot_start
@@ -537,13 +592,11 @@ def gym_free_session_view(request):
                                 user=request.user,
                                 instructor=None,
                                 session_type='FREE',
-                                start_time=slot_start
+                                start_time=slot_start,
+                                end_time=slot_end
                             )
                             messages.success(request, f"Loc rezervat in sala mare pe {data_str} la ora {ora_str}!")
-                            return redirect('gym_free_session')
-
-
-                            print(f"DEBUG POST: data={data_str}, ora={ora_str}")
+                            return redirect(f"/sala-mare/?date={data_str}")
 
                             
             except Exception as e:
@@ -553,6 +606,7 @@ def gym_free_session_view(request):
         'sala_mare': sala_mare,
         'toate_zilele': toate_zilele,
         'now': now,
+        'selected_date': zi_ancora.strftime('%Y-%m-%d'),
     }
     return render(request, 'gym_session.html', context)
 
@@ -585,6 +639,17 @@ def instructor_detail_view(request, instructor_id):
     }
     return render(request, 'instructor_detail.html', context)
 
+@login_required
+def my_bookings_view(request):
+    acum = timezone.now()
+    
+    sesiuni_individuale = GymSession.objects.filter(user=request.user, start_time__gte=acum).order_by('start_time')
+    clase_grup = Booking.objects.filter(user=request.user, fitness_class__start_time__gte=acum).order_by('fitness_class__start_time')
+    
+    return render(request, 'my_bookings.html', {
+        'sesiuni_individuale': sesiuni_individuale,
+        'clase_grup': clase_grup
+    })
 
 def register_view(request):
     if request.method == 'POST':
