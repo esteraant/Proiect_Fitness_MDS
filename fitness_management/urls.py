@@ -20,6 +20,7 @@ urlpatterns = [
 
     path('instructori/<int:instructor_id>/rezerva-1la1/', views.book_1to1_view, name='book_1to1'),
     path('sala-mare/', views.gym_free_session_view, name='gym_free_session'),
+    path('my-bookings/', views.my_bookings_view, name='my_bookings'),
     
     path('register/', views.register_view, name='register'),
     path('program/', views.classes_view, name='fitness_classes_list'),
