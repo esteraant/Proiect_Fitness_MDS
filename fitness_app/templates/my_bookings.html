@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4 text-center">Următoarele Antrenamente</h2>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0 text-center">Sesiuni Individuale</h4>
+                </div>
+                <div class="card-body">
+                    {% if sesiuni_individuale %}
+                        <div class="d-flex flex-column gap-3">
+                            {% for sesiune in sesiuni_individuale %}
+                                <div class="p-3 border rounded text-center bg-light">
+                                    <div>
+                                        <strong class="text-capitalize fs-5">{{ sesiune.get_session_type_display }}</strong><br>
+                                        <small class="text-muted">{{ sesiune.start_time|date:"d M Y" }} | {{ sesiune.start_time|date:"H:i" }}</small>
+                                        
+                                        {% if sesiune.instructor %}
+                                            <br><small class="text-info">Instructor: {{ sesiune.instructor.get_full_name|default:sesiune.instructor.username }}</small>
+                                        {% endif %}
+                                    </div>
+                                    <div class="mt-2">
+                                        <span class="badge bg-success rounded-pill">Urmează</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center my-3">Nu ai nicio sesiune individuală programată în perioada următoare.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0 text-center">Clase de Grup</h4>
+                </div>
+                <div class="card-body">
+                    {% if clase_grup %}
+                        <div class="d-flex flex-column gap-3">
+                            {% for rezervare in clase_grup %}
+                                <div class="p-3 border rounded text-center bg-light">
+                                    <div>
+                                        <strong class="fs-5">{{ rezervare.fitness_class.name }}</strong><br>
+                                        
+                                        {% if rezervare.child_name %}
+                                            <span class="badge bg-info text-dark my-1">Pentru: {{ rezervare.child_name }}</span><br>
+                                        {% endif %}
+                                        
+                                        <small class="text-muted">{{ rezervare.fitness_class.start_time|date:"d M Y" }} | {{ rezervare.fitness_class.start_time|date:"H:i" }}</small>
+                                        
+                                        {% if rezervare.fitness_class.instructor %}
+                                            <br><small class="text-info">Instructor: {{ rezervare.fitness_class.instructor.get_full_name|default:rezervare.fitness_class.instructor.username }}</small>
+                                        {% endif %}
+                                    </div>
+                                    <div class="mt-2">
+                                        <span class="badge bg-success rounded-pill">Înscris</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center my-3">Nu ești înscris la nicio clasă de grup programată în viitor.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+{% endblock %}
