@@ -12,7 +12,7 @@ from .models import Subscription, Booking, User, FitnessClass, Room, GymSession,
 from django.db.models import Q
 from django.http import JsonResponse
 from .utils import GymSystemConfig, SubscriptionFactory
-from .ai_agents import ChatbotSupportAgent  # Importăm noul agent decuplat
+from .ai_agents import ChatbotSupportAgent
 import re
 
 def login_view(request):
@@ -56,9 +56,7 @@ def home_view(request):
     sesiuni_saptamana = GymSession.objects.filter(user=request.user, start_time__gte=start_of_week).count()
     antrenamente_saptamana_curenta = clase_saptamana + sesiuni_saptamana
 
-    # agent AI - analiza si predictie
-   
- # --- SALA MARE ---
+    # --- SALA MARE ---
     sala_mare = Room.objects.filter(room_type='GYM').first()
     if sala_mare:
         sesiuni_active = GymSession.objects.filter(
@@ -108,24 +106,69 @@ def home_view(request):
     )
     total_max = sum(c.max_capacity for c in peak_classes)
     total_booked = sum(c.booking_set.count() for c in peak_classes)
+    
     if total_max > 0:
         occupancy_rate = int((total_booked / total_max) * 100)
-        if occupancy_rate < 40:
-            occupancy_rate = 65 + (request.user.id % 15)
     else:
-        occupancy_rate = 70 + (request.user.id % 15)
+        occupancy_rate = 0
+        
     ai_occupancy_prompt = f"Sala va fi la {occupancy_rate}% capacitate între orele 18:00 - 20:00. Îți recomandăm un antrenament la ora 16:30 pentru a evita aglomerația."
 
-    # AI recomandare
-    goal = (request.user.fitness_goal or "").lower()
-    if any(k in goal for k in ["slăbire", "slabi", "cardio", "greutate", "kilograme", "aerobic"]):
-        ai_recommendation = "Pe baza obiectivului tău de slăbire și cardio, AI îți recomandă: Zumba, HIIT sau Aerobic!"
-    elif any(k in goal for k in ["forță", "muschi", "masă", "tonifiere", "greutăți", "pump"]):
-        ai_recommendation = "Pe baza obiectivului tău de forță, AI îți recomandă: BodyPump, TRX sau Personal Training 1-la-1!"
-    elif any(k in goal for k in ["relaxare", "spate", "postură", "yoga", "flexibilitate", "stretching"]):
-        ai_recommendation = "Pe baza dorinței tale de relaxare, AI îți recomandă: Yoga, Pilates sau Stretching."
-    else:
-        ai_recommendation = "Completează-ți obiectivul în Profil pentru recomandări personalizate! Momentan: HIIT pentru energie și Pilates pentru postură."
+    try:
+        import json
+        from .ai_agents import GymAnalyticsAgent
+        
+        ora_locala = timezone.localtime(now)
+        current_time_str = ora_locala.strftime("%H:%M")
+        
+        traffic_context = f"Capacitate curentă în Sala Mare: {ocupare_sala_mare}%. Procent estimat pe intervalul de vârf diseară (18:00-20:00): {occupancy_rate}% aglomerat. Locuri libere în acest moment: {locuri_libere_gym}."
+        user_goal = request.user.fitness_goal or "Nesetată (Menținere generală)"
+        
+        db_classes = FitnessClass.objects.filter(start_time__gt=ora_locala).order_by('start_time')[:4]
+        
+        available_classes_list = []
+        for c in db_classes:
+            clasa_local_time = timezone.localtime(c.start_time)
+            available_classes_list.append(f"- Clasa {c.name} programată în viitor la data de {clasa_local_time.strftime('%d %b, ora %H:%M')}")
+            
+        available_classes_text = "\n".join(available_classes_list)
+        if not available_classes_text:
+            available_classes_text = "Nu sunt clase de grup viitoare active programate în sistem pentru orele următoare."
+
+        analytics_agent = GymAnalyticsAgent()
+        json_bot_response = analytics_agent.generate_dashboard_insights(
+            current_time_str=current_time_str,
+            traffic_context=traffic_context,
+            user_goal=user_goal,
+            available_classes_text=available_classes_text
+        )
+        
+        ai_data = json.loads(json_bot_response)
+        ai_occupancy_prompt = ai_data.get("predictie_trafic", "").strip()
+        ai_recommendation = ai_data.get("recomandare_antrenament", "").strip()
+        
+        for string_variabila in ['ai_occupancy_prompt', 'ai_recommendation']:
+            text_existent = locals()[string_variabila]
+            
+            text_existent = text_existent.replace("&lt;", "<").replace("&gt;", ">")
+            text_existent = text_existent.replace("Îți recomandăm să te prezinți", "Opțiunea optimă pentru tine este să te prezinți")
+            text_existent = text_existent.replace("îți recomandăm să", "este indicat să")
+            text_existent = text_existent.replace("Te recomandăm să", "Ai posibilitatea să")
+            text_existent = text_existent.replace("te recomandăm să", "poți să")
+            
+            # Curățare clasică Markdown
+            text_existent = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text_existent)
+            text_existent = re.sub(r'_(.*?)_', r'<strong>\1</strong>', text_existent)
+            
+            locals()[string_variabila] = text_existent
+
+        ai_occupancy_prompt = locals()['ai_occupancy_prompt']
+        ai_recommendation = locals()['ai_recommendation']
+        
+    except Exception as e:
+        print("--- Eroare critică parsare GymAnalyticsAgent JSON: ---", str(e))
+        ai_occupancy_prompt = f"Sistemul estimează o capacitate de {occupancy_rate}% la orele de vârf."
+        ai_recommendation = "Vizualizează programul claselor din meniu pentru a alege un antrenament adaptat scopului tău."
 
     # AI recomandare inghetare
     last_booking = Booking.objects.filter(user=request.user, attended=True).order_by('-booking_time').first()
@@ -139,6 +182,7 @@ def home_view(request):
     if days_inactive >= 5 and subscription and not subscription.is_frozen:
         show_freeze_reminder = True
         ai_freeze_prompt = f"Observăm că au trecut {days_inactive} zile de la ultimul tău antrenament. Pentru a nu pierde valabilitatea abonamentului, îți recomandăm să revii la sală sau poți opta pentru înghețarea acestuia direct din Profil!"
+    
     sesiuni_1la1 = GymSession.objects.filter(
         user=request.user,
         session_type='1TO1'
@@ -146,7 +190,6 @@ def home_view(request):
 
     # toate rezervarile la clase de grup
     rezervari_clase = Booking.objects.filter(user=request.user).order_by('fitness_class__start_time')
-
 
     context = {
         'subscription': subscription,
@@ -158,7 +201,7 @@ def home_view(request):
         'locuri_libere_gym': locuri_libere_gym,
         'sali_info': sali_info,
         'ai_occupancy_prompt': ai_occupancy_prompt,
-        'ai_recommendation': ai_recommendation,
+        'ai_recommendation': ai_recommendation,  # va prelua textul dinamic generat de LLM
         'show_freeze_reminder': show_freeze_reminder,
         'ai_freeze_prompt': ai_freeze_prompt,
 
@@ -895,12 +938,12 @@ def chatbot_response_view(request):
                     if fitness_class:
                         already_booked = Booking.objects.filter(user=request.user, fitness_class=fitness_class).exists()
                         if already_booked:
-                            return JsonResponse({'response': f"🤖 Văd în sistem că <strong>ești deja înscris(ă)</strong> la clasa de {fitness_class.name} din {fitness_class.start_time.strftime('%d %b la %H:%M')}!"})
+                            return JsonResponse({'response': f"Văd în sistem că <strong>ești deja înscris(ă)</strong> la clasa de {fitness_class.name} din {fitness_class.start_time.strftime('%d %b la %H:%M')}!"})
                         
                         if fitness_class.available_spots > 0:
                             Booking.objects.create(user=request.user, fitness_class=fitness_class)
                             return JsonResponse({
-                                'response': f"🎉 <strong>Rezervare confirmată!</strong><br>Te-am înscris cu succes la clasa de <strong>{fitness_class.name}</strong>.<br>Ne vedem pe data de {fitness_class.start_time.strftime('%d %b la ora %H:%M')}!"
+                                'response': f" <strong>Rezervare confirmată!</strong><br>Te-am înscris cu succes la clasa de <strong>{fitness_class.name}</strong>.<br>Ne vedem pe data de {fitness_class.start_time.strftime('%d %b la ora %H:%M')}!"
                             })
                         else:
                             return JsonResponse({'response': f"Din păcate, clasa de {fitness_class.name} este plină."})
