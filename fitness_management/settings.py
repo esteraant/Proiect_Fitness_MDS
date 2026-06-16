@@ -130,3 +130,5 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
+
+GROQ_API_KEY = "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"
