@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from .models import Subscription, SessionPackage, Payment
 
 # SINGLETON pentru configuratia salii
 class GymSystemConfig:
@@ -18,47 +19,62 @@ class GymSystemConfig:
 
 # FACTORY pentru abonamente
 class BaseSubscriptionPlan:
-    """Clasa de bază pentru planurile de abonament (Product)"""
+    """Product de baza"""
+    plan_code = None
     def get_details(self):
-        raise NotImplementedError("Trebuie să implementezi această metodă!")
-
+        cfg = Subscription.PLAN_CONFIG[self.plan_code]
+        return {
+            'plan': self.plan_code,
+            'duration_days': cfg['days'],
+            'price': cfg['price'],
+            'description': f"Abonament {cfg['label']}",
+        }
+ 
+ 
 class MonthlyPlan(BaseSubscriptionPlan):
-    def get_details(self):
-        return {
-            'plan': '1M',
-            'duration_days': 30,
-            'price': 150.00,
-            'description': "Abonament Lunar Standard"
-        }
-
+    plan_code = '1M'
+ 
+class QuarterlyPlan(BaseSubscriptionPlan):
+    plan_code = '3M'
+ 
 class SemiAnnualPlan(BaseSubscriptionPlan):
-    def get_details(self):
-        return {
-            'plan': '6M',
-            'duration_days': 180,
-            'price': 750.00,  # Reducere aplicată direct
-            'description': "Abonament 6 Luni (Economisești o lună)"
-        }
-
+    plan_code = '6M'
+ 
 class AnnualPlan(BaseSubscriptionPlan):
-    def get_details(self):
-        return {
-            'plan': '1Y',
-            'duration_days': 365,
-            'price': 1400.00,
-            'description': "Abonament Anual VIP"
-        }
-
-
+    plan_code = '12M'
+ 
 class SubscriptionFactory:
-    """Clasa Fabrică (Creator)"""
+    """Creator"""
+    _plans = {
+        '1M': MonthlyPlan,
+        '3M': QuarterlyPlan,
+        '6M': SemiAnnualPlan,
+        '12M': AnnualPlan,
+    }
+ 
     @staticmethod
     def create_plan(plan_type):
         plan_type = (plan_type or "").upper()
-        
-        if plan_type == '6M':
-            return SemiAnnualPlan()
-        elif plan_type == '1Y':
-            return AnnualPlan()
-        else:
-            return MonthlyPlan()  # planul default
+        plan_cls = SubscriptionFactory._plans.get(plan_type, MonthlyPlan)
+        return plan_cls()
+ 
+ 
+# helper: aplica reducerea de 10% daca userul are reduceri disponibile
+def apply_referral_discount(user, base_price):
+    """
+    Returneaza (pret_final, discount_procent_aplicat, a_folosit_reducere).
+    Nu consuma reducerea aici, doar calculeaza. Consumarea se face dupa plata reusita
+    """
+    config = GymSystemConfig()
+    if user.discounts_available > 0:
+        discount = config.referral_discount_percentage
+        final = round(float(base_price) * (1 - discount / 100), 2)
+        return final, discount, True
+    return float(base_price), 0, False
+ 
+ 
+def consume_referral_discount(user):
+    """Scade o reducere dupa ce a fost folosita la o plata reusita"""
+    if user.discounts_available > 0:
+        user.discounts_available -= 1
+        user.save(update_fields=['discounts_available'])

@@ -19,6 +19,14 @@ class CustomUserCreationForm(UserCreationForm):
         widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 3'})
     )
 
+    friend_code = forms.CharField(
+        max_length=15, 
+        required=False, 
+        label="Cod invitație prieten (Opțional)",
+        help_text="Dacă ai un cod de la un prieten, introdu-l aici pentru a-l răsplăti cu 10% reducere!"
+    )
+
+
     class Meta(UserCreationForm.Meta):
         model = User
         fields = UserCreationForm.Meta.fields + (

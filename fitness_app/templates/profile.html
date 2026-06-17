@@ -115,6 +115,7 @@
                                 <span style="background: #2ecc71; color: white; padding: 4px 10px; border-radius: 15px; font-size: 0.85rem; font-weight: bold; display: inline-block; margin-left: 5px;"><i class="fa-solid fa-check-circle"></i> ACTIV</span>
                             {% endif %}
                         </p>
+                        <p style="margin: 0 !important; font-size: 0.95rem !important;"><strong>Plan:</strong> {{ subscription.get_plan_display }}</p>
                         <p style="margin: 0 !important; font-size: 0.95rem !important;"><strong>Data activării:</strong> {{ subscription.start_date|date:"d M Y" }}</p>
                         <p style="margin: 0 !important; font-size: 0.95rem !important;"><strong>Valabilitate:</strong> {{ days_left }} zile rămase</p>
                     </div>
@@ -161,12 +162,56 @@
                         border-radius: 4px !important; 
                         color: white !important; 
                         background-color: #1f5b97 !important;
-                    ">🛒 Vezi Oferte</a>
+                    ">Vezi Oferte</a>
                 {% endif %}
             </div>
         </div>
 
     </div>
+
+    <!-- pachetele de sedinte cu numar limitat de intrari -->
+    <div class="welcome-card" style="margin-top: 25px; border-left: 6px solid #9b59b6; padding: 25px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px;">
+        <h3 style="margin-top: 0; color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px;">
+            <i class="fa-solid fa-ticket"></i> Pachetele Mele de Ședințe
+        </h3>
+        {% if pachete_active %}
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                {% for pachet in pachete_active %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <div>
+                        <strong style="color: #2c3e50; font-size: 1.02rem;">
+                            {% if pachet.package_type == '1TO1' %}
+                                <i class="fa-solid fa-dumbbell"></i>
+                                Personal Training cu {{ pachet.instructor.first_name }} {{ pachet.instructor.last_name }}
+                            {% else %}
+                                <i class="fa-solid fa-users" ></i>
+                                Clasă de grup: {{ pachet.fitness_class_name }}
+                            {% endif %}
+                        </strong>
+                        <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 5px;">
+                            <i class="fa-regular fa-calendar"></i> Valabil până pe {{ pachet.end_date|date:"d M Y" }}
+                        </div>
+                    </div>
+                    <div style="text-align: center; min-width: 90px;">
+                        <span style="font-size: 1.7rem; font-weight: 700; color: {% if pachet.sessions_left <= 2 %}#e74c3c{% else %}#27ae60{% endif %};">
+                            {{ pachet.sessions_left }}
+                        </span>
+                        <span style="color: #7f8c8d; font-size: 1.1rem;">/ {{ pachet.total_sessions }}</span>
+                        <div style="font-size: 0.78rem; color: #7f8c8d; margin-top: 2px;">ședințe rămase</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 10px;">
+                <p style="color: #7f8c8d; margin: 0 0 15px; font-size: 0.95rem;">Nu ai niciun pachet de ședințe activ.</p>
+                <a href="{% url 'buy_package' %}" style="
+                    display: inline-block; text-decoration: none; padding: 10px 20px; font-size: 0.95rem; font-weight: bold; border-radius: 4px; color: white; background-color: #9b59b6;
+                ">Cumpără un pachet</a>
+            </div>
+        {% endif %}
+    </div>
+
 </div>
 
 <script>

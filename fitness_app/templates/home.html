@@ -37,54 +37,7 @@
     </div>
 </div>
 
-<div class="occupancy-section">
-    <h3><i class="fa-solid fa-chart-bar"></i> Grad de Ocupare Săli</h3>
 
-    {% if sala_mare %}
-    <div class="occupancy-card">
-        <div class="occupancy-header">
-            <span class="room-name">{{ sala_mare.name }}</span>
-            <span
-                class="occupancy-pct {% if ocupare_sala_mare >= 80 %}pct-red{% elif ocupare_sala_mare >= 50 %}pct-orange{% else %}pct-green{% endif %}">
-                {{ ocupare_sala_mare }}%
-            </span>
-        </div>
-        <div class="progress-bar-track">
-            <div class="progress-bar-fill {% if ocupare_sala_mare >= 80 %}fill-red{% elif ocupare_sala_mare >= 50 %}fill-orange{% else %}fill-green{% endif %}"
-                style="width: {{ ocupare_sala_mare }}%;">
-            </div>
-        </div>
-        <small>{{ locuri_libere_gym }} locuri libere din {{ sala_mare.capacity }}</small>
-    </div>
-    {% endif %}
-
-    {% for sala in sali_info %}
-    <div class="occupancy-card">
-        <div class="occupancy-header">
-            <span class="room-name">
-                {{ sala.nume }}
-                {% if sala.clasa %}
-                <span class="class-badge">{{ sala.clasa }}</span>
-                {% else %}
-                <span class="class-badge badge-free">Liberă</span>
-                {% endif %}
-            </span>
-            <span
-                class="occupancy-pct {% if sala.ocupare >= 80 %}pct-red{% elif sala.ocupare >= 50 %}pct-orange{% else %}pct-green{% endif %}">
-                {{ sala.ocupare }}%
-            </span>
-        </div>
-        <div class="progress-bar-track">
-            <div class="progress-bar-fill
-                {% if sala.ocupare >= 80 %}fill-red
-                {% elif sala.ocupare >= 50 %}fill-orange
-                {% else %}fill-green{% endif %}" style="width: {{ sala.ocupare }}%;">
-            </div>
-        </div>
-        <small>{{ sala.locuri_libere }} locuri libere din {{ sala.max }}</small>
-    </div>
-    {% endfor %}
-</div>
 
 <div class="ai-dashboard-card" style="
     background: #ffffff; 
@@ -101,8 +54,7 @@
         font-weight: 700;
         display: flex;
         align-items: center;
-        gap: 10px;
-    ">
+        gap: 10px;">
         <i class="fa-solid fa-robot" style="color: #1f5b97;"></i> Asistent Virtual AlgoRhythm AI
     </h3>
 
@@ -113,8 +65,7 @@
             align-items: flex-start; 
             gap: 15px; 
             padding-bottom: 15px; 
-            border-bottom: 1px solid #f1f2f6;
-        ">
+            border-bottom: 1px solid #f1f2f6;">
             <span class="ai-badge ai-badge-blue" style="
                 background-color: #1f5b97; 
                 color: white; 
@@ -213,6 +164,115 @@
             <p>Spune-ne cum a fost ultimul tău antrenament.</p>
         </div>
     </a>
+</div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; margin-top: 40px; margin-bottom: 30px; align-items: start;">
+
+        <div class="welcome-card occupancy-section">
+            <h3><i class="fa-solid fa-chart-bar"></i> Grad de Ocupare Săli</h3>
+
+            {% if sala_mare %}
+            <div class="occupancy-card">
+                <div class="occupancy-header">
+                    <span class="room-name">{{ sala_mare.name }}</span>
+                    <span
+                        class="occupancy-pct {% if ocupare_sala_mare >= 80 %}pct-red{% elif ocupare_sala_mare >= 50 %}pct-orange{% else %}pct-green{% endif %}">
+                        {{ ocupare_sala_mare }}%
+                    </span>
+                </div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill {% if ocupare_sala_mare >= 80 %}fill-red{% elif ocupare_sala_mare >= 50 %}fill-orange{% else %}fill-green{% endif %}"
+                        style="width: {{ ocupare_sala_mare }}%;">
+                    </div>
+                </div>
+                <small>{{ locuri_libere_gym }} locuri libere din {{ sala_mare.capacity }}</small>
+            </div>
+            {% endif %}
+
+            {% for sala in sali_info %}
+            <div class="occupancy-card">
+                <div class="occupancy-header">
+                    <span class="room-name">
+                        {{ sala.nume }}
+                        {% if sala.clasa %}
+                        <span class="class-badge">{{ sala.clasa }}</span>
+                        {% else %}
+                        <span class="class-badge badge-free">Liberă</span>
+                        {% endif %}
+                    </span>
+                    <span
+                        class="occupancy-pct {% if sala.ocupare >= 80 %}pct-red{% elif sala.ocupare >= 50 %}pct-orange{% else %}pct-green{% endif %}">
+                        {{ sala.ocupare }}%
+                    </span>
+                </div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill
+                        {% if sala.ocupare >= 80 %}fill-red
+                        {% elif sala.ocupare >= 50 %}fill-orange
+                        {% else %}fill-green{% endif %}" style="width: {{ sala.ocupare }}%;">
+                    </div>
+                </div>
+                <small>{{ sala.locuri_libere }} locuri libere din {{ sala.max }}</small>
+            </div>
+            {% endfor %}
+        </div>
+
+    
+        <div class="welcome-card" style="margin: 0; border-top: 6px solid #1f5b97; padding: 25px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px;">
+            <h3 style="margin-top: 0; color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px;">
+                <i class="fa-solid fa-circle-question"></i> Întrebări Frecvente (FAQ)
+            </h3>
+
+            <div class="faq-wrapper">
+                <button class="faq-accordion">Cum funcționează rezervările în Sala Mare?</button>
+                <div class="faq-panel">
+                    <p>Fiecare sesiune în Sala Mare are o durată standard, predefinită, de 90 de minute. Rezervările se pot face cu minimum 30 de minute înainte.</p>
+                </div>
+
+                <button class="faq-accordion">Ce fac dacă plec în vacanță și am abonament activ?</button>
+                <div class="faq-panel">
+                    <p>Nu îți pierzi zilele! Poți folosi opțiunea de <i>Înghețare Abonament</i> direct din secțiunea Profil. Cât timp contul este înghețat, nu te vei putea înscrie la clase sau sesiuni, iar toate programările tale viitoare vor fi anulate automat pentru a elibera locurile pentru alți membri. Când revii, apasă pe Dezgheață și ești gata de antrenament.</p>
+                </div>
+
+                <button class="faq-accordion">Cum mă poate ajuta asistentul virtual AlgoRhythm AI?</button>
+                <div class="faq-panel">
+                    <p>Chatbot-ul nostru inteligent este aici să îți ușureze viața! Îi poți pune întrebări despre tarife, orarul claselor, sau îi poți da o comandă directă de tipul <em>„Vreau să mă înscriu la Zumba”</em>, iar el va căuta primul loc disponibil și te va înscrie instant, fără să mai navighezi prin meniuri.</p>
+                </div>
+
+                <button class="faq-accordion">Pot rezerva un loc la clase pentru copilul meu?</button>
+                <div class="faq-panel">
+                    <p>Da! Clasele marcate special pentru copii permit părintelui să rezerve locul, introducând numele copilului la înscriere. Conturile de copii nu pot efectua rezervări la clasele de adulți din motive de siguranță.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Logica JavaScript pentru animarea acordionului
+        document.addEventListener("DOMContentLoaded", function() {
+            var acc = document.getElementsByClassName("faq-accordion");
+            for (var i = 0; i < acc.length; i++) {
+                acc[i].addEventListener("click", function() {
+                    // inchide toate celelalte panouri
+                    var active = document.querySelector(".faq-accordion.active");
+                    if (active && active !== this) {
+                        active.classList.remove("active");
+                        active.nextElementSibling.style.maxHeight = null;
+                    }
+
+                    // schimba starea panoului apasat
+                    this.classList.toggle("active");
+                    var panel = this.nextElementSibling;
+                    if (panel.style.maxHeight) {
+                        panel.style.maxHeight = null;
+                    } else {
+                        panel.style.maxHeight = panel.scrollHeight + "px";
+                    } 
+                });
+            }
+        });
+    </script>
+
 </div>
 
 {% endblock %}

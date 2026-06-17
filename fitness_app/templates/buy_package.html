@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="welcome-card" style="text-align:center; margin-bottom:30px;">
+    <h2>Pachete de ședințe</h2>
+    <p>Cumpără un pachet 1-la-1 cu un instructor anume, sau un pachet pentru o clasă de grup specifică.</p>
+    <p style="margin-top:10px;">Reduceri disponibile: <strong>{{ reduceri_disponibile }}</strong></p>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert" style="text-align:center; padding:12px; border-radius:8px; margin-bottom:15px;
+        background: {% if message.tags == 'error' %}#fdecea{% elif message.tags == 'success' %}#eafaf1{% else %}#eaf4fb{% endif %};
+        color: {% if message.tags == 'error' %}#c0392b{% elif message.tags == 'success' %}#1e8449{% else %}#1f5b97{% endif %};">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:20px;">
+    {% for p in pachete %}
+    <div class="card" style="border-top:6px solid {% if p.package_type == '1TO1' %}#e67e22{% else %}#16a085{% endif %}; display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+            <h3>
+                {% if p.package_type == '1TO1' %}Personal Training{% else %}Clasă de grup{% endif %}
+                — {% if p.duration == '1M' %}Lunar{% else %}Trimestrial{% endif %}
+            </h3>
+            <p><strong>{{ p.sessions }}</strong> ședințe</p>
+            <div style="margin:15px 0;">
+                {% if p.are_reducere %}
+                    <span style="text-decoration:line-through; color:#7f8c8d; margin-right:8px;">{{ p.pret_baza }} RON</span>
+                    <h1 style="color:#27ae60; display:inline; font-size:2rem;">{{ p.pret_final }} RON</h1>
+                {% else %}
+                    <h1 style="color:#2c3e50; font-size:2rem;">{{ p.pret_baza }} RON</h1>
+                {% endif %}
+            </div>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="package_type" value="{{ p.package_type }}">
+            <input type="hidden" name="duration" value="{{ p.duration }}">
+
+            {% if p.package_type == '1TO1' %}
+            <select name="instructor_id" required style="width:100%; padding:8px; margin-bottom:10px; border-radius:6px; border:1px solid #cbd5e1;">
+                <option value="">Alege instructorul...</option>
+                {% for ins in instructori %}
+                <option value="{{ ins.id }}">{{ ins.first_name }} {{ ins.last_name }}</option>
+                {% endfor %}
+            </select>
+            {% else %}
+            <select name="class_name" required style="width:100%; padding:8px; margin-bottom:10px; border-radius:6px; border:1px solid #cbd5e1;">
+                <option value="">Alege clasa...</option>
+                {% for nume in clase_grup %}
+                <option value="{{ nume }}">{{ nume }}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
+
+            <button type="submit" class="btn-ocean" style="width:100%; border:none; cursor:pointer; font-size:1.05rem;
+                {% if p.package_type == '1TO1' %}background:#e67e22;{% else %}background:#16a085;{% endif %}">
+                Cumpără pachet
+            </button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

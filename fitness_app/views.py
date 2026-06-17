@@ -8,12 +8,14 @@ from django.contrib import messages
 from .forms import ReviewForm
 from django.utils import timezone
 from datetime import datetime, date, timedelta
-from .models import Subscription, Booking, User, FitnessClass, Room, GymSession, Review
+from .models import Subscription, Booking, User, FitnessClass, Room, GymSession, Review, SessionPackage, Payment
 from django.db.models import Q
+from django.db import transaction
 from django.http import JsonResponse
-from .utils import GymSystemConfig, SubscriptionFactory
-from .ai_agents import ChatbotSupportAgent  # Importăm noul agent decuplat
+from .utils import GymSystemConfig, SubscriptionFactory, apply_referral_discount, consume_referral_discount
+from .ai_agents import ChatbotSupportAgent 
 import re
+PRET_SESIUNE_INDIVIDUALA = 40.00
 
 def login_view(request):
     if request.method == 'POST':
@@ -176,10 +178,12 @@ def profile_view(request):
     # calculul zilelor ramase
     days_left = 0
     if subscription:
-        end_date = subscription.start_date + timedelta(days=30)
+        end_date = subscription.end_date
         today = timezone.now().date() 
         delta = end_date - today
         days_left = max(0, delta.days)
+
+    pachete_active = [p for p in SessionPackage.objects.filter(user=user) if p.is_active]
 
     if request.method == 'POST':
         fitness_goal = request.POST.get('fitness_goal', '')
@@ -196,7 +200,8 @@ def profile_view(request):
     return render(request, 'profile.html', {
         'user': user,
         'subscription': subscription,
-        'days_left': days_left
+        'days_left': days_left,
+        'pachete_active': pachete_active,
     })
 
 @login_required
@@ -216,14 +221,6 @@ def freeze_subscription(request):
             
     return redirect('profile')
 
-@login_required
-def activate_subscription(request):
-    sub, created = Subscription.objects.get_or_create(user=request.user)
-    sub.start_date = date.today()
-    sub.end_date = date.today() + timedelta(days=30) # Îi dăm 30 de zile
-    sub.is_frozen = False
-    sub.save()
-    return redirect('profile')
 
 
 @login_required
@@ -325,33 +322,42 @@ def book_class(request, class_id):
             messages.error(request, "Conturile de copii nu pot efectua rezervări la clasele de adulți. Înscrierea trebuie făcută de un părinte!")
             return redirect('fitness_classes_list')
     
-    subscription = Subscription.objects.filter(user=request.user).first()
-
-    if not subscription:
-        plan_handler = SubscriptionFactory.create_plan('1M')
-        plan_details = plan_handler.get_details()
-
-        subscription = Subscription.objects.create(
-            user=request.user,
-            start_date=date.today(),
-            end_date=date.today() + timedelta(days=plan_details['duration_days']),
-            is_frozen=False,
-            price=plan_details['price'],
-            plan=plan_details['plan']
-        )
-        messages.info(request, "Un abonament nou a fost activat pentru tine.")
-    else:
-        if subscription.is_frozen:
-            messages.warning(request, "Abonamentul tău este înghețat. Dezgheață-l din profil!")
-            return redirect('profile')
+    # pachet -> abonament -> plata
+    with transaction.atomic():
+        paid_by_package = None
+        acoperit = False
+        mesaj_plata = None
+ 
+        # pachet de grup pe aceasta clasa specifica
+        pkg = SessionPackage.objects.filter(
+            user=user, package_type='GRP',
+            fitness_class_name=fitness_class.name,
+        ).order_by('end_date').last()
+        if pkg and pkg.is_active:
+            pkg.sessions_used += 1
+            pkg.save(update_fields=['sessions_used'])
+            paid_by_package = pkg
+            acoperit = True
+ 
+        # altfel plateste pretul clasei
+        if not acoperit:
+            Payment.objects.create(
+                user=user, kind='SINGLE', amount=fitness_class.price,
+                description=f"Sedinta {fitness_class.name}",
+            )
+            mesaj_plata = f"Ai platit {fitness_class.price} RON pentru aceasta sedinta."
 
     
-    noua_rezervare = Booking.objects.create(
-        user=request.user,
-        fitness_class=fitness_class,
-        child_name=nume_copil if is_booking_for_child else None
-    )
-    messages.success(request, "Loc rezervat cu succes!")
+        noua_rezervare = Booking.objects.create(
+            user=request.user,
+            fitness_class=fitness_class,
+            child_name=nume_copil if is_booking_for_child else None,
+            paid_by_package=paid_by_package,
+        )
+    if paid_by_package:
+        messages.success(request, f"Loc rezervat! Sedinte ramase in pachet: {paid_by_package.sessions_left}.")
+    elif mesaj_plata:
+        messages.success(request, f"Loc rezervat cu succes! {mesaj_plata}")
     return redirect('fitness_classes_list')
 
 
@@ -427,13 +433,41 @@ def book_1to1_view(request, instructor_id):
             elif deja_rezervat:
                 messages.error(request, "Ai deja o sesiune rezervată în acest interval.")
             else:
+
+                with transaction.atomic():
+                    is_free = False
+                    paid_by_package = None
+                    mesaj_extra = ""
+                    if not request.user.first_free_session_used:
+                        is_free = True
+                        request.user.first_free_session_used = True
+                        request.user.save(update_fields=['first_free_session_used'])
+                        mesaj_extra = " (sesiune gratuita de bun venit)"
+                    else:
+                        pkg = SessionPackage.objects.filter(
+                            user=request.user, package_type='1TO1', instructor=instructor,
+                        ).order_by('end_date').last()
+                        if pkg and pkg.is_active:
+                            pkg.sessions_used += 1
+                            pkg.save(update_fields=['sessions_used'])
+                            paid_by_package = pkg
+                            mesaj_extra = f" (din pachet, sedinte ramase: {pkg.sessions_left})"
+                        else:
+                            Payment.objects.create(
+                                user=request.user, kind='SINGLE', amount=PRET_SESIUNE_INDIVIDUALA,
+                                description=f"Sesiune 1-la-1 cu {instructor.last_name}",
+                            )
+                            mesaj_extra = f" (ai platit {PRET_SESIUNE_INDIVIDUALA} RON)"
+
                 GymSession.objects.create(
                     user=request.user,
                     instructor=instructor,
                     session_type='1TO1',
-                    start_time=slot_start
+                    start_time=slot_start,
+                    is_free_session=is_free,
+                    paid_by_package=paid_by_package,
                 )
-                messages.success(request, f"Sesiune 1-la-1 rezervată cu {instructor.first_name} {instructor.last_name}!")
+                messages.success(request, f"Sesiune 1-la-1 rezervată cu {instructor.first_name} {instructor.last_name}!{mesaj_extra}")
                 return redirect('instructor_detail', instructor_id=instructor_id)
         except Exception as e:
             messages.error(request, f"Eroare la rezervare: {str(e)}")
@@ -579,14 +613,32 @@ def gym_free_session_view(request):
                         if deja_rezervat:
                             messages.error(request, "Ai deja o sesiune rezervata in acest interval!")
                         else:
+                            with transaction.atomic():
+                                is_free = False
+                                mesaj_extra = ""
+                                if not request.user.first_free_session_used:
+                                    is_free = True
+                                    request.user.first_free_session_used = True
+                                    request.user.save(update_fields=['first_free_session_used'])
+                                    mesaj_extra = " (sesiune gratuita de bun venit)"
+                                elif subscription and subscription.is_active:
+                                    mesaj_extra = " (acoperit de abonament)"
+                                else:
+                                    Payment.objects.create(
+                                        user=request.user, kind='SINGLE', amount=PRET_SESIUNE_INDIVIDUALA,
+                                        description="Sesiune individuala sala mare",
+                                    )
+                                    mesaj_extra = f" (ai platit {PRET_SESIUNE_INDIVIDUALA} RON)"
+
                             GymSession.objects.create(
                                 user=request.user,
                                 instructor=None,
                                 session_type='FREE',
                                 start_time=slot_start,
-                                end_time=slot_end
+                                end_time=slot_end,
+                                is_free_session=is_free,
                             )
-                            messages.success(request, f"Loc rezervat in sala mare pe {data_str} la ora {ora_str}!")
+                            messages.success(request, f"Loc rezervat in sala mare pe {data_str} la ora {ora_str}!{mesaj_extra}")
                             return redirect(f"/sala-mare/?date={data_str}")
             except Exception as e:
                 messages.error(request, f"Eroare: {str(e)}")
@@ -641,8 +693,18 @@ def register_view(request):
             if birth_date:
                 today = date.today()
                 age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-                user.is_child = (age < 18)
+                user.is_child = (age < 16)
             user.save()
+
+            friend_code = form.cleaned_data.get('friend_code')
+            if friend_code:
+                # cautam prietenul in baza de date
+                referring_friend = User.objects.filter(referral_code=friend_code.strip().upper()).first()
+                if referring_friend:
+                    referring_friend.discounts_available += 1
+                    referring_friend.save()
+                    messages.success(request, "Cod de invitație validat! Prietenul tău a primit o reducere.")
+
             login(request, user)
             return redirect('home')
     else:
@@ -708,7 +770,144 @@ def class_detail_view(request, class_id):
         'selected_day': selected_day or 'all',
     }
     return render(request, 'class_detail.html', context)
+
+
+@login_required
+def buy_subscription_view(request):
+    user = request.user
+
+    existing = Subscription.objects.filter(user=user).first()
+    has_active_sub = existing is not None and existing.is_active
     
+    planuri = []
+    for code, cfg in Subscription.PLAN_CONFIG.items():
+        pret_final, discount, are_reducere = apply_referral_discount(user, cfg['price'])
+        planuri.append({
+            'code': code,
+            'label': cfg['label'],
+            'pret_baza': cfg['price'],
+            'pret_final': pret_final,
+            'are_reducere': are_reducere,
+        })
+    
+    if request.method == 'POST':
+        if has_active_sub:
+            messages.error(request, "Ai deja un abonament activ.")
+            return redirect('buy_subscription')
+        
+        plan_code = request.POST.get('plan')
+        if plan_code not in Subscription.PLAN_CONFIG:
+            messages.error(request, "Plan invalid.")
+            return redirect('buy_subscription')
+ 
+        details = SubscriptionFactory.create_plan(plan_code).get_details()
+        pret_final, discount, a_folosit = apply_referral_discount(user, details['price'])
+ 
+        start = date.today()
+        end = start + timedelta(days=details['duration_days'])
+ 
+        with transaction.atomic():
+            sub, _ = Subscription.objects.update_or_create(
+                user=user,
+                defaults={
+                    'start_date': start,
+                    'end_date': end,
+                    'plan': plan_code,
+                    'price': pret_final,
+                    'discount_applied': discount,
+                    'is_frozen': False,
+                    'freeze_start_date': None,
+                }
+            )
+            Payment.objects.create(
+                user=user, kind='SUB', amount=pret_final,
+                description=f"Abonament {details['description']}",
+                subscription=sub,
+            )
+            if a_folosit:
+                consume_referral_discount(user)
+ 
+        messages.success(request, f"Abonament {details['description']} activat pana pe {end.strftime('%d.%m.%Y')}!")
+        return redirect('profile')
+ 
+    return render(request, 'buy_subscription.html', {
+        'planuri': planuri,
+        'has_active_sub': has_active_sub,
+        'data_expirare': existing.end_date if existing else None,
+        'referral_code': user.referral_code,
+        'reduceri_disponibile': user.discounts_available,
+    })
+
+@login_required
+def buy_package_view(request):
+    user = request.user
+    instructori = User.objects.filter(role='INS')
+    clase_grup = FitnessClass.objects.filter(type='GRP').values_list('name', flat=True).distinct()
+    if request.method == 'POST':
+        package_type = request.POST.get('package_type')
+        duration = request.POST.get('duration')
+        instructor_id = request.POST.get('instructor_id')
+        class_name = request.POST.get('class_name')
+        key = (package_type, duration)
+        if key not in SessionPackage.PACKAGE_CONFIG:
+            messages.error(request, "Combinatie de pachet invalida.")
+            return redirect('buy_package')
+        cfg = SessionPackage.PACKAGE_CONFIG[key]
+        instructor = None
+        if package_type == '1TO1':
+            if not instructor_id:
+                messages.error(request, "Alege un instructor pentru pachetul 1-la-1.")
+                return redirect('buy_package')
+            instructor = get_object_or_404(User, id=instructor_id, role='INS')
+            class_name = None
+        elif package_type == 'GRP':
+            if not class_name:
+                messages.error(request, "Alege o clasa pentru pachetul de grup.")
+                return redirect('buy_package')
+        pret_final, discount, a_folosit = apply_referral_discount(user, cfg['price'])
+        start = date.today()
+        end = start + timedelta(days=cfg['days'])
+        with transaction.atomic():
+            pkg = SessionPackage.objects.create(
+                user=user,
+                package_type=package_type,
+                duration=duration,
+                instructor=instructor,
+                fitness_class_name=class_name,
+                total_sessions=cfg['sessions'],
+                sessions_used=0,
+                price=pret_final,
+                start_date=start,
+                end_date=end,
+            )
+            Payment.objects.create(
+                user=user, kind='PKG', amount=pret_final,
+                description=f"Pachet {pkg.get_package_type_display()} ({cfg['sessions']} sedinte)",
+                session_package=pkg,
+            )
+            if a_folosit:
+                consume_referral_discount(user)
+        messages.success(request, f"Pachet de {cfg['sessions']} sedinte cumparat cu succes!")
+        return redirect('profile')
+    pachete = []
+    for (ptype, dur), cfg in SessionPackage.PACKAGE_CONFIG.items():
+        pret_final, discount, are_red = apply_referral_discount(user, cfg['price'])
+        pachete.append({
+            'package_type': ptype,
+            'duration': dur,
+            'sessions': cfg['sessions'],
+            'pret_baza': cfg['price'],
+            'pret_final': pret_final,
+            'are_reducere': are_red,
+        })
+    return render(request, 'buy_package.html', {
+        'pachete': pachete,
+        'instructori': instructori,
+        'clase_grup': clase_grup,
+        'reduceri_disponibile': user.discounts_available,
+    })
+    
+
 @staff_member_required
 def admin_dashboard_view(request):
     total_users = User.objects.count()
