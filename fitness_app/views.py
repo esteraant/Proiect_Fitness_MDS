@@ -86,6 +86,7 @@ def home_view(request):
                 'ocupare': ocupare_pct,
                 'locuri_libere': clasa_activa.max_capacity - bookings,
                 'max': clasa_activa.max_capacity,
+                'pret': clasa_activa.price,
             })
         else:
             sali_info.append({
@@ -916,6 +917,7 @@ def generate_recurrent_classes_view(request):
                     naive_datetime = datetime.combine(current_date, class_time)
                     localized_datetime = timezone.make_aware(naive_datetime)
                     end_datetime = localized_datetime + timedelta(minutes=int(duration_minutes))
+                    price = request.POST.get('price', 0)
 
                     instructor_ocupat = FitnessClass.objects.filter(
                         instructor=instructor,
@@ -943,7 +945,8 @@ def generate_recurrent_classes_view(request):
                         name=name, type=class_type, instructor=instructor,
                         max_capacity=max_capacity, room=room,
                         is_for_women_only=is_for_women_only, is_for_children=is_for_children,
-                        start_time=localized_datetime
+                        start_time=localized_datetime,
+                        price=price
                     )
                     clase_create += 1
                 current_date += timedelta(days=1)
