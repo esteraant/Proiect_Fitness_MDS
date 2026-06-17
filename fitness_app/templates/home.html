@@ -6,132 +6,66 @@
     <h1>Salut, {{ user.username }}! <i class="fa-regular fa-hand-peace"></i></h1>
     <p>Ești gata pentru antrenamentul de astăzi?</p>
 
-    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee;">
+    <div class="home-subscription-status">
         <strong>Statut Abonament:</strong>
         {% if subscription and is_subscription_active %}
-        {% if subscription.is_frozen %}
-        <span class="status-badge status-frozen">
-            <i class="fa-solid fa-snowflake"></i> Înghețat (Până la {{ subscription.end_date }})
-        </span>
+            {% if subscription.is_frozen %}
+            <span class="status-badge status-frozen">
+                <i class="fa-solid fa-snowflake"></i> Înghețat (Până la {{ subscription.end_date }})
+            </span>
+            {% else %}
+            <span class="status-badge status-active">
+                <i class="fa-solid fa-check-circle"></i> Activ (Expiră pe {{ subscription.end_date }})
+            </span>
+            {% endif %}
         {% else %}
-        <span class="status-badge status-active">
-            <i class="fa-solid fa-check-circle"></i> Activ (Expiră pe {{ subscription.end_date }})
-        </span>
-        {% endif %}
-        {% else %}
-        <span class="status-badge status-none">
-            <i class="fa-solid fa-times-circle"></i> Fără abonament activ
-        </span>
+            <span class="status-badge status-none">
+                <i class="fa-solid fa-times-circle"></i> Fără abonament activ
+            </span>
         {% endif %}
     </div>
 </div>
 
-<div class="grid" style="margin-bottom: 2rem;">
-    <div class="card" style="border-bottom: 4px solid #1f5b97;">
-        <h4 style="margin:0; color: #7f8c8d;">Antrenamente efectuate</h4>
-        <h2 style="margin: 10px 0;">{{ attended_count }} ședințe</h2>
+<div class="grid home-stats-grid">
+    <div class="card stat-card stat-card-primary">
+        <h4 class="stat-title">Antrenamente efectuate</h4>
+        <h2 class="stat-value">{{ attended_count }} ședințe</h2>
     </div>
-    <div class="card" style="border-bottom: 4px solid #4d6c8a;">
-        <h4 style="margin:0; color: #7f8c8d;">Obiectiv Săptămânal</h4>
-        <h2 style="margin: 10px 0;">{{ antrenamente_saptamana_curenta }} / {{ user.frequency_per_week }}</h2>
+    <div class="card stat-card stat-card-secondary">
+        <h4 class="stat-title">Obiectiv Săptămânal</h4>
+        <h2 class="stat-value">{{ antrenamente_saptamana_curenta }} / {{ user.frequency_per_week }}</h2>
     </div>
 </div>
 
-
-
-<div class="ai-dashboard-card" style="
-    background: #ffffff; 
-    padding: 30px; 
-    border-radius: 16px; 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
-    margin-bottom: 30px;
-    border: none;
-">
-    <h3 class="ai-dashboard-title" style="
-        margin: 0 0 25px 0; 
-        color: #2c3e50; 
-        font-size: 1.25rem; 
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 10px;">
-        <i class="fa-solid fa-robot" style="color: #1f5b97;"></i> Asistent Virtual AlgoRhythm AI
+<div class="ai-dashboard-card">
+    <h3 class="ai-dashboard-title">
+        <i class="fa-solid fa-robot"></i> Asistent Virtual AlgoRhythm AI
     </h3>
 
-    <div class="ai-dashboard-container" style="display: flex; flex-direction: column; gap: 20px;">
+    <div class="ai-dashboard-container">
 
-        <div class="ai-card-info" style="
-            display: flex; 
-            align-items: flex-start; 
-            gap: 15px; 
-            padding-bottom: 15px; 
-            border-bottom: 1px solid #f1f2f6;">
-            <span class="ai-badge ai-badge-blue" style="
-                background-color: #1f5b97; 
-                color: white; 
-                padding: 6px 12px; 
-                border-radius: 6px; 
-                font-size: 0.75rem; 
-                font-weight: 700;
-                letter-spacing: 0.5px;
-                white-space: nowrap;
-            ">PREDICȚIE TRAFIC</span>
-            <p class="prediction-text" style="margin: 0; color: #2c3e50; font-size: 0.98rem; line-height: 1.5;">
+        <div class="ai-card-info">
+            <span class="ai-badge ai-badge-blue">PREDICȚIE TRAFIC</span>
+            <p class="ai-text-content">
                 {{ ai_occupancy_prompt }}
             </p>
         </div>
 
-        <div class="ai-card-info"
-            style="display: flex; align-items: flex-start; gap: 15px; {% if show_freeze_reminder %}padding-bottom: 15px; border-bottom: 1px solid #f1f2f6;{% endif %}">
-            <span class="ai-badge ai-badge-green" style="
-                background-color: #27ae60; 
-                color: white; 
-                padding: 6px 12px; 
-                border-radius: 6px; 
-                font-size: 0.75rem; 
-                font-weight: 700;
-                letter-spacing: 0.5px;
-                white-space: nowrap;
-            ">RECOMANDARE</span>
-            <p style="margin: 0; color: #2c3e50; font-size: 0.98rem; line-height: 1.5;">
+        <div class="ai-card-info {% if not show_freeze_reminder %}no-border{% endif %}">
+            <span class="ai-badge ai-badge-green">RECOMANDARE</span>
+            <p class="ai-text-content">
                 {{ ai_recommendation }}
             </p>
         </div>
 
         {% if show_freeze_reminder %}
-        <div class="alert alert-warning" style="
-            background-color: #fff3cd; 
-            color: #856404; 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin-top: 5px; 
-            border-left: 5px solid #e67e22; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 10px;
-        ">
-            <div
-                style="font-size: 0.95rem; line-height: 1.5; display: flex; align-items: center; gap: 8px; color: #856404;">
-
-                <i class="fa-solid fa-triangle-exclamation" style="color: #e67e22; font-size: 1.1rem;"></i>
-
+        <div class="ai-alert-warning">
+            <div class="ai-alert-header">
+                <i class="fa-solid fa-triangle-exclamation"></i>
                 <span>{{ ai_freeze_prompt|safe }}</span>
             </div>
-
             <div>
-                <a href="{% url 'profile' %}" style="
-                    background-color: #e67e22; 
-                    color: white; 
-                    padding: 6px 12px; 
-                    border-radius: 4px; 
-                    text-decoration: none; 
-                    font-weight: bold; 
-                    display: inline-flex; 
-                    align-items: center; 
-                    gap: 6px;
-                    font-size: 0.85rem;
-                    transition: background 0.2s ease;
-                " onmouseover="this.style.backgroundColor='#d35400'" onmouseout="this.style.backgroundColor='#e67e22'">
+                <a href="{% url 'profile' %}" class="btn-ai-freeze">
                     <i class="fa-solid fa-snowflake"></i> Mergi la Profil pentru înghețare
                 </a>
             </div>
@@ -142,23 +76,22 @@
 </div>
 
 <h2>Ce vrei să facem azi?</h2>
-<div class="grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch;">
-
-    <a href="{% url 'fitness_classes_list' %}" style="text-decoration: none; color: inherit; display: block;">
+<div class="grid quick-actions-grid">
+    <a href="{% url 'fitness_classes_list' %}" class="quick-action-link">
         <div class="card">
             <h3><i class="fa-solid fa-calendar-days"></i> Rezervă o clasă</h3>
             <p>Vezi programul de Yoga, Zumba sau Crossfit.</p>
         </div>
     </a>
 
-    <a href="{% url 'my_bookings' %}" style="text-decoration: none; color: inherit; display: block;">
+    <a href="{% url 'my_bookings' %}" class="quick-action-link">
         <div class="card">
             <h3><i class="fa-solid fa-dumbbell"></i> Antrenamentele mele</h3>
             <p>Vezi rezervările active pentru clase și sesiuni.</p>
         </div>
     </a>
 
-    <a href="{% url 'reviews_list' %}" style="text-decoration: none; color: inherit; display: block;">
+    <a href="{% url 'reviews_list' %}" class="quick-action-link">
         <div class="card">
             <h3><i class="fa-solid fa-star"></i> Recenzii</h3>
             <p>Spune-ne cum a fost ultimul tău antrenament.</p>
@@ -166,113 +99,103 @@
     </a>
 </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; margin-top: 40px; margin-bottom: 30px; align-items: start;">
+<div class="home-bottom-grid">
 
-        <div class="welcome-card occupancy-section">
-            <h3><i class="fa-solid fa-chart-bar"></i> Grad de Ocupare Săli</h3>
+    <div class="welcome-card occupancy-section">
+        <h3><i class="fa-solid fa-chart-bar"></i> Grad de Ocupare Săli</h3>
 
-            {% if sala_mare %}
-            <div class="occupancy-card">
-                <div class="occupancy-header">
-                    <span class="room-name">{{ sala_mare.name }}</span>
-                    <span
-                        class="occupancy-pct {% if ocupare_sala_mare >= 80 %}pct-red{% elif ocupare_sala_mare >= 50 %}pct-orange{% else %}pct-green{% endif %}">
-                        {{ ocupare_sala_mare }}%
-                    </span>
-                </div>
-                <div class="progress-bar-track">
-                    <div class="progress-bar-fill {% if ocupare_sala_mare >= 80 %}fill-red{% elif ocupare_sala_mare >= 50 %}fill-orange{% else %}fill-green{% endif %}"
-                        style="width: {{ ocupare_sala_mare }}%;">
-                    </div>
-                </div>
-                <small>{{ locuri_libere_gym }} locuri libere din {{ sala_mare.capacity }}</small>
+        {% if sala_mare %}
+        <div class="occupancy-card">
+            <div class="occupancy-header">
+                <span class="room-name">{{ sala_mare.name }}</span>
+                <span class="occupancy-pct {% if ocupare_sala_mare >= 80 %}pct-red{% elif ocupare_sala_mare >= 50 %}pct-orange{% else %}pct-green{% endif %}">
+                    {{ ocupare_sala_mare }}%
+                </span>
             </div>
-            {% endif %}
-
-            {% for sala in sali_info %}
-            <div class="occupancy-card">
-                <div class="occupancy-header">
-                    <span class="room-name">
-                        {{ sala.nume }}
-                        {% if sala.clasa %}
-                        <span class="class-badge">{{ sala.clasa }}</span>
-                        {% else %}
-                        <span class="class-badge badge-free">Liberă</span>
-                        {% endif %}
-                    </span>
-                    <span
-                        class="occupancy-pct {% if sala.ocupare >= 80 %}pct-red{% elif sala.ocupare >= 50 %}pct-orange{% else %}pct-green{% endif %}">
-                        {{ sala.ocupare }}%
-                    </span>
+            <div class="progress-bar-track">
+                <div class="progress-bar-fill {% if ocupare_sala_mare >= 80 %}fill-red{% elif ocupare_sala_mare >= 50 %}fill-orange{% else %}fill-green{% endif %}"
+                    style="width: {{ ocupare_sala_mare }}%;">
                 </div>
-                <div class="progress-bar-track">
-                    <div class="progress-bar-fill
-                        {% if sala.ocupare >= 80 %}fill-red
-                        {% elif sala.ocupare >= 50 %}fill-orange
-                        {% else %}fill-green{% endif %}" style="width: {{ sala.ocupare }}%;">
-                    </div>
-                </div>
-                <small>{{ sala.locuri_libere }} locuri libere din {{ sala.max }}</small>
             </div>
-            {% endfor %}
+            <small>{{ locuri_libere_gym }} locuri libere din {{ sala_mare.capacity }}</small>
         </div>
+        {% endif %}
 
-    
-        <div class="welcome-card" style="margin: 0; border-top: 6px solid #1f5b97; padding: 25px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px;">
-            <h3 style="margin-top: 0; color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px;">
-                <i class="fa-solid fa-circle-question"></i> Întrebări Frecvente (FAQ)
-            </h3>
-
-            <div class="faq-wrapper">
-                <button class="faq-accordion">Cum funcționează rezervările în Sala Mare?</button>
-                <div class="faq-panel">
-                    <p>Fiecare sesiune în Sala Mare are o durată standard, predefinită, de 90 de minute. Rezervările se pot face cu minimum 30 de minute înainte.</p>
+        {% for sala in sali_info %}
+        <div class="occupancy-card">
+            <div class="occupancy-header">
+                <span class="room-name">
+                    {{ sala.nume }}
+                    {% if sala.clasa %}
+                    <span class="class-badge">{{ sala.clasa }}</span>
+                    {% else %}
+                    <span class="class-badge badge-free">Liberă</span>
+                    {% endif %}
+                </span>
+                <span class="occupancy-pct {% if sala.ocupare >= 80 %}pct-red{% elif sala.ocupare >= 50 %}pct-orange{% else %}pct-green{% endif %}">
+                    {{ sala.ocupare }}%
+                </span>
+            </div>
+            <div class="progress-bar-track">
+                <div class="progress-bar-fill {% if sala.ocupare >= 80 %}fill-red{% elif sala.ocupare >= 50 %}fill-orange{% else %}fill-green{% endif %}" 
+                    style="width: {{ sala.ocupare }}%;">
                 </div>
+            </div>
+            <small>{{ sala.locuri_libere }} locuri libere din {{ sala.max }}</small>
+        </div>
+        {% endfor %}
+    </div>
 
-                <button class="faq-accordion">Ce fac dacă plec în vacanță și am abonament activ?</button>
-                <div class="faq-panel">
-                    <p>Nu îți pierzi zilele! Poți folosi opțiunea de <i>Înghețare Abonament</i> direct din secțiunea Profil. Cât timp contul este înghețat, nu te vei putea înscrie la clase sau sesiuni, iar toate programările tale viitoare vor fi anulate automat pentru a elibera locurile pentru alți membri. Când revii, apasă pe Dezgheață și ești gata de antrenament.</p>
-                </div>
+    <div class="welcome-card faq-card">
+        <h3 class="faq-title">
+            <i class="fa-solid fa-circle-question"></i> Întrebări Frecvente (FAQ)
+        </h3>
 
-                <button class="faq-accordion">Cum mă poate ajuta asistentul virtual AlgoRhythm AI?</button>
-                <div class="faq-panel">
-                    <p>Chatbot-ul nostru inteligent este aici să îți ușureze viața! Îi poți pune întrebări despre tarife, orarul claselor, sau îi poți da o comandă directă de tipul <em>„Vreau să mă înscriu la Zumba”</em>, iar el va căuta primul loc disponibil și te va înscrie instant, fără să mai navighezi prin meniuri.</p>
-                </div>
+        <div class="faq-wrapper">
+            <button class="faq-accordion">Cum funcționează rezervările în Sala Mare?</button>
+            <div class="faq-panel">
+                <p>Fiecare sesiune în Sala Mare are o durată standard, predefinită, de 90 de minute. Rezervările se pot face cu minimum 30 de minute înainte.</p>
+            </div>
 
-                <button class="faq-accordion">Pot rezerva un loc la clase pentru copilul meu?</button>
-                <div class="faq-panel">
-                    <p>Da! Clasele marcate special pentru copii permit părintelui să rezerve locul, introducând numele copilului la înscriere. Conturile de copii nu pot efectua rezervări la clasele de adulți din motive de siguranță.</p>
-                </div>
+            <button class="faq-accordion">Ce fac dacă plec în vacanță și am abonament activ?</button>
+            <div class="faq-panel">
+                <p>Nu îți pierzi zilele! Poți folosi opțiunea de <i>Înghețare Abonament</i> direct din secțiunea Profil. Cât timp contul este înghețat, nu te vei putea înscrie la clase sau sesiuni, iar toate programările tale viitoare vor fi anulate automat pentru a elibera locurile pentru alți membri. Când revii, apasă pe Dezgheață și ești gata de antrenament.</p>
+            </div>
+
+            <button class="faq-accordion">Cum mă poate ajuta asistentul virtual AlgoRhythm AI?</button>
+            <div class="faq-panel">
+                <p>Chatbot-ul nostru inteligent este aici să îți ușureze viața! Îi poți pune întrebări despre tarife, orarul claselor, sau îi poți da o comandă directă de tipul <em>„Vreau să mă înscriu la Zumba”</em>, iar el va căuta primul loc disponibil și te va înscrie instant, fără să mai navighezi prin meniuri.</p>
+            </div>
+
+            <button class="faq-accordion">Pot rezerva un loc la clase pentru copilul meu?</button>
+            <div class="faq-panel">
+                <p>Da! Clasele marcate special pentru copii permit părintelui să rezerve locul, introducând numele copilului la înscriere. Conturile de copii nu pot efectua rezervări la clasele de adulți din motive de siguranță.</p>
             </div>
         </div>
     </div>
 
-    <script>
-        // Logica JavaScript pentru animarea acordionului
-        document.addEventListener("DOMContentLoaded", function() {
-            var acc = document.getElementsByClassName("faq-accordion");
-            for (var i = 0; i < acc.length; i++) {
-                acc[i].addEventListener("click", function() {
-                    // inchide toate celelalte panouri
-                    var active = document.querySelector(".faq-accordion.active");
-                    if (active && active !== this) {
-                        active.classList.remove("active");
-                        active.nextElementSibling.style.maxHeight = null;
-                    }
-
-                    // schimba starea panoului apasat
-                    this.classList.toggle("active");
-                    var panel = this.nextElementSibling;
-                    if (panel.style.maxHeight) {
-                        panel.style.maxHeight = null;
-                    } else {
-                        panel.style.maxHeight = panel.scrollHeight + "px";
-                    } 
-                });
-            }
-        });
-    </script>
-
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var acc = document.getElementsByClassName("faq-accordion");
+        for (var i = 0; i < acc.length; i++) {
+            acc[i].addEventListener("click", function() {
+                var active = document.querySelector(".faq-accordion.active");
+                if (active && active !== this) {
+                    active.classList.remove("active");
+                    active.nextElementSibling.style.maxHeight = null;
+                }
+                this.classList.toggle("active");
+                var panel = this.nextElementSibling;
+                if (panel.style.maxHeight) {
+                    panel.style.maxHeight = null;
+                } else {
+                    panel.style.maxHeight = panel.scrollHeight + "px";
+                } 
+            });
+        }
+    });
+</script>
 
 {% endblock %}

@@ -1,65 +1,65 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="welcome-card" style="text-align: center; margin-bottom: 30px;">
+<div class="welcome-card sub-header-card">
     <h2>Invită prieteni, primești reduceri!</h2>
     <p>Oferă-le codul tău prietenilor la înregistrare. Pentru fiecare prieten care își face cont cu el, primești <strong>10% reducere</strong> la următorul tău abonament.</p>
-    <div style="background: #f1f2f6; display: inline-block; padding: 10px 20px; font-size: 1.5rem; font-weight: bold; border-radius: 8px; color: #1f5b97; letter-spacing: 2px;">
+    <div class="sub-referral-code">
         {{ referral_code }}
     </div>
-    <p style="margin-top: 15px;">Ai adunat: <strong>{{ reduceri_disponibile }}</strong> reduceri disponibile.</p>
+    <p class="sub-count-text">Ai adunat: <strong>{{ reduceri_disponibile }}</strong> reduceri disponibile.</p>
 </div>
 
 {% if messages %}
+    <div class="sub-messages">
     {% for message in messages %}
-    <div class="alert" style="text-align:center; padding:12px; border-radius:8px; margin-bottom:15px;
-        background: {% if message.tags == 'error' %}#fdecea{% elif message.tags == 'success' %}#eafaf1{% else %}#eaf4fb{% endif %};
-        color: {% if message.tags == 'error' %}#c0392b{% elif message.tags == 'success' %}#1e8449{% else %}#1f5b97{% endif %};">
+    <div class="sub-alert {% if message.tags == 'error' %}sub-alert-error{% elif message.tags == 'success' %}sub-alert-success{% else %}sub-alert-info{% endif %}">
         {{ message }}
     </div>
     {% endfor %}
+    </div>
 {% endif %}
 
-<h2 style="text-align: center;">Alege Abonamentul</h2>
+<h2 class="sub-title">Alege Abonamentul</h2>
 
 {% if has_active_sub %}
-<div class="alert alert-success" style="text-align: center; background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; font-weight: bold;  margin-bottom:20px;">
+<div class="sub-active-alert">
     Ai deja un abonament activ până pe {{ data_expirare|date:"d.m.Y" }}
 </div>
 {% endif %}
 
-<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:20px;">
+<div class="sub-grid">
     {% for plan in planuri %}
-    <div class="card" style="border-top: 6px solid #95a5a6; display: flex; flex-direction: column; justify-content: space-between;">
+    <div class="card sub-card">
         <div>
             <h3>{{ plan.label }}</h3>            
             <div style="margin: 20px 0;">
                 {% if plan.are_reducere %}
-                    <span style="text-decoration: line-through; color: #7f8c8d; font-size: 1.2rem; margin-right: 10px;">{{ plan.pret_baza }}</span>
-                    <h1 style="color: #27ae60; display: inline; font-size: 2.5rem;">{{ plan.pret_final }} RON</h1>
+                    <span class="sub-old-price">{{ plan.pret_baza }}</span>
+                    <h1 class="sub-new-price">{{ plan.pret_final }} RON</h1>
                 {% else %}
-                    <h1 style="color: #2c3e50; font-size: 2.5rem;">{{ plan.pret_baza }} RON</h1>
+                    <h1 class="sub-normal-price">{{ plan.pret_baza }} RON</h1>
                 {% endif %}
             </div>
         </div>
 
         
         {% if has_active_sub %}
-            <button disabled style="width: 100%; border: none; padding: 12px; border-radius: 8px; background-color: #bdc3c7; color: white; cursor: not-allowed; font-size: 1.1rem; font-weight: 600;">
+            <button disabled class="sub-disabled-btn">
                 <i class="fa-solid fa-lock"></i>  Indisponibil
             </button>
         {% else %}
             <form method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="plan" value="{{ plan.code }}">
-                <button type="submit" class="btn-ocean" style="width:100%; border:none; cursor:pointer; font-size:1.05rem;">Cumpără</button>
+                <button type="submit" class="btn-ocean sub-submit-btn">Cumpără</button>
             </form>
         {% endif %}
     </div>
     {% endfor %}
 </div>
 
-<div style="text-align:center; margin-top:30px;">
+<div class="sub-footer-link">
     <a href="{% url 'buy_package' %}" class="btn-back">Vrei un pachet 1-la-1 sau de grup? </a>
 </div>
 

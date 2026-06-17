@@ -36,27 +36,18 @@
             </a>
         </div>
 
-
-        <div class="calendar-section-header"
-        <div
-            style="margin-top: 35px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
-            <h3 style="color: #2c3e50; margin: 0;">Calendar Ședințe</h3>
+        <div class="calendar-section-header">
+            <h3>Calendar Ședințe</h3>
 
             {% if available_months %}
-            <form method="GET" action="" id="monthFilterForm">
-
-                <select name="month" id="monthSelect" onchange="document.getElementById('monthFilterForm').submit();"
-                    style="padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-weight: 600; color: #2c3e50; cursor: pointer;">
+            <form method="GET" action="" id="monthFilterForm" class="calendar-filter-form">
+                <select name="month" id="monthSelect" onchange="document.getElementById('monthFilterForm').submit();" class="calendar-select">
                     {% for month_key, month_name in available_months.items %}
                     <option value="{{ month_key }}" {% if month_key == selected_month %}selected{% endif %}>{{ month_name }}</option>
-
-                    <option value="{{ month_key }}">{{ month_name }}</option>
                     {% endfor %}
                 </select>
 
-                <select name="day_of_week" id="daySelect"
-                    onchange="document.getElementById('monthFilterForm').submit();"
-                    style="padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-weight: 600; color: #2c3e50; cursor: pointer;">
+                <select name="day_of_week" id="daySelect" onchange="document.getElementById('monthFilterForm').submit();" class="calendar-select">
                     <option value="all" {% if selected_day == 'all' %}selected{% endif %}>Toate zilele</option>
                     <option value="0" {% if selected_day == '0' %}selected{% endif %}>Luni</option>
                     <option value="1" {% if selected_day == '1' %}selected{% endif %}>Marți</option>
@@ -65,98 +56,82 @@
                     <option value="4" {% if selected_day == '4' %}selected{% endif %}>Vineri</option>
                     <option value="5" {% if selected_day == '5' %}selected{% endif %}>Sâmbătă</option>
                     <option value="6" {% if selected_day == '6' %}selected{% endif %}>Duminică</option>
-                    <option value="all">Toate zilele</option>
-                    <option value="0">Luni</option>
-                    <option value="1">Marți</option>
-                    <option value="2">Miercuri</option>
-                    <option value="3">Joi</option>
-                    <option value="4">Vineri</option>
-                    <option value="5">Sâmbătă</option>
-                    <option value="6">Duminică</option>
                 </select>
-
             </form>
             {% endif %}
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+        <div class="sessions-list">
             {% for session in sessions %}
-            <div
-                style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
-                <div>
-                    <span style="font-weight: bold; color: #2c3e50; font-size: 1.05rem;">
+            <div class="session-item">
+                <div class="session-info">
+                    <span class="session-time">
                         {{ session.start_time|date:"l, d F Y" }} — Ora {{ session.start_time|date:"H:i" }}
                     </span>
-                    <span style="font-size: 0.85rem; color: #7f8c8d; margin-left: 15px;">
-                        Locuri libere: <span
-                            style="font-weight: bold; color: {% if session.available_spots > 0 %}#2ecc71{% else %}#e74c3c{% endif %};">
+                    <span class="session-spots">
+                        Locuri libere: <span class="spots-count {% if session.available_spots > 0 %}spots-available{% else %}spots-full{% endif %}">
                             {{ session.available_spots }}
                         </span> / {{ session.max_capacity }}
                     </span>
                 </div>
 
-                <div>
+                <div class="session-actions">
                     {% if session.available_spots > 0 %}
-                    <form action="{% url 'book_class' session.id %}" method="POST"
-                        style="display: flex; align-items: center; gap: 10px; margin: 0;">
+                    <form action="{% url 'book_class' session.id %}" method="POST" class="booking-form">
                         {% csrf_token %}
 
                         {% if session.is_for_children %}
-                        <input type="text" name="child_name" placeholder="nume copil" required
-                            style="padding: 6px 10px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
+                        <input type="text" name="child_name" placeholder="nume copil" required class="child-name-input">
                         {% endif %}
 
-                        <button type="submit"
-                            style="background-color: #27ae60; color: white; padding: 8px 18px; border: none; border-radius: 4px; font-weight: bold; font-size: 0.85rem; cursor: pointer;">
+                        <button type="submit" class="btn-book-spot">
                             Rezervă Loc
                         </button>
                     </form>
                     {% else %}
-                    <span
-                        style="color: #e74c3c; font-weight: bold; font-size: 0.85rem; background: #fdedec; padding: 5px 10px; border-radius: 4px; display: inline-block;">
+                    <span class="badge-full-house">
                         Sală Plină
                     </span>
                     {% endif %}
                 </div>
             </div>
             {% empty %}
-            <p style="color: #7f8c8d; text-align: center;">Nu mai sunt ședințe programate pentru această clasă.</p>
+            <p class="sessions-empty-msg">Nu mai sunt ședințe programate pentru această clasă.</p>
             {% endfor %}
         </div>
 
         {% if show_attendance_list %}
-        <div style="margin-top: 45px; border-top: 2px solid #2ecc71; padding-top: 20px;">
-            <h3 style="color: #2c3e50; margin: 0 0 10px 0; display: flex; align-items: center; gap: 10px;">
-                <i class="fa-solid fa-users" style="color: #2ecc71;"></i> Lista Clienților Înscriși
+        <div class="attendance-section">
+            <h3 class="attendance-title">
+                <i class="fa-solid fa-users"></i> Lista Clienților Înscriși
             </h3>
-            <p style="font-size: 0.9rem; color: #7f8c8d; margin: 0 0 20px 0;">
+            <p class="attendance-subtitle">
                 Prezențe înregistrate pentru această ședință specifică: <strong>{{ total_enrolled }}</strong> clienți.
             </p>
 
             {% if bookings %}
-            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+            <table class="attendance-table">
                 <thead>
-                    <tr style="border-bottom: 2px solid #ecf0f1; color: #7f8c8d; font-weight: 600;">
-                        <th style="padding: 12px 8px; width: 60px;">#</th>
-                        <th style="padding: 12px 8px;">Nume Complet</th>
-                        <th style="padding: 12px 8px;">Nume Utilizator (Username)</th>
+                    <tr>
+                        <th>#</th>
+                        <th>Nume Complet</th>
+                        <th>Nume Utilizator (Username)</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for booking in bookings %}
-                    <tr style="border-bottom: 1px solid #f1f2f6;">
-                        <td style="padding: 12px 8px; color: #7f8c8d;">{{ forloop.counter }}</td>
-                        <td style="padding: 12px 8px; font-weight: bold; color: #2c3e50;">
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td class="client-full-name">
                             {{ booking.user.get_full_name|default:"Nespecificat" }}
                         </td>
-                        <td style="padding: 12px 8px; color: #1f5b97;">@{{ booking.user.username }}</td>
+                        <td class="client-username">@{{ booking.user.username }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
             {% else %}
-            <p
-                style="color: #7f8c8d; font-style: italic; text-align: center; padding: 20px; background: #f8fafc; border-radius: 6px; border: 1px dashed #cbd5e1;">
+            <p class="attendance-empty-msg">
                 Niciun client înscris momentan la această ședință.
             </p>
             {% endif %}
@@ -164,10 +139,5 @@
         {% endif %}
     </div>
 
-    <div class="navigation-actions">
-        <a href="{% url 'fitness_classes_list' %}" class="btn-back">
-            <span class="icon">⬅</span> Înapoi la program
-        </a>
-    </div>
 </div>
 {% endblock %}
