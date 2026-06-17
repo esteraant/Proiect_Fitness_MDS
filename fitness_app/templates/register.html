@@ -2,89 +2,33 @@
 {% block title %}Înregistrare - AlgoRhythm Gym{% endblock %}
 
 {% block content %}
-<div class="container"
-    style="display: flex; justify-content: center; align-items: center; min-height: 90vh; padding: 30px 20px;">
-    <div class="card"
-        style="max-width: 550px; width: 100%; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.06); border: none; background: #ffffff;">
+<div class="container register-wrapper">
+    <div class="card register-card">
 
-        <div style="text-align: center; margin-bottom: 25px;">
-            <h2 style="color: #2c3e50; font-weight: 700; margin-bottom: 10px;">
-                <i class="fa-solid fa-user-plus" style="color: #1f5b97; margin-right: 10px;"></i>Cont Nou AlgoRhythm
+        <div class="register-header">
+            <h2 class="register-title">
+                <i class="fa-solid fa-user-plus"></i> Cont Nou AlgoRhythm
             </h2>
-            <p style="color: #7f8c8d; font-size: 0.95rem;">Alătură-te comunității noastre și începe transformarea ta
-                fizică.</p>
-            <div style="width: 50px; height: 4px; background: #1f5b97; margin: 15px auto; border-radius: 2px;"></div>
+            <p class="register-subtitle">Alătură-te comunității noastre și începe transformarea ta fizică.</p>
+            <div class="register-divider"></div>
         </div>
 
-        <form method="POST" class="django-styled-form" style="display: flex; flex-direction: column; gap: 15px;">
+        <form method="POST" class="django-styled-form register-form">
             {% csrf_token %}
 
             <div class="form-fields-wrapper">
                 {{ form.as_p }}
             </div>
 
-            <button type="submit" class="btn-ocean" style="
-                background-color: #1f5b97; color: white; padding: 14px; border: none; border-radius: 12px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.3s ease; margin-top: 15px; box-shadow: 0 4px 15px rgba(31, 91, 151, 0.2); width: 100%;
-            " onmouseover="this.style.backgroundColor='#164371'; this.style.transform='translateY(-1px)'"
-                onmouseout="this.style.backgroundColor='#1f5b97'; this.style.transform='none'">
+            <button type="submit" class="btn-ocean register-submit-btn">
                 Creează Contul Meu
             </button>
 
-            <div style="text-align: center; margin-top: 15px; font-size: 0.9rem; color: #7f8c8d;">
-                Ai deja un cont creat? <a href="{% url 'login' %}"
-                    style="color: #1f5b97; font-weight: 600; text-decoration: none;">Conectează-te aici</a>
+            <div class="register-footer">
+                Ai deja un cont creat? <a href="{% url 'login' %}">Conectează-te aici</a>
             </div>
         </form>
+
     </div>
 </div>
-
-<style>
-    .django-styled-form p {
-        margin-bottom: 15px !important;
-        display: flex !important;
-        flex-direction: column !important;
-    }
-
-    .django-styled-form label {
-        margin-bottom: 6px !important;
-        font-weight: 600 !important;
-        color: #34495e !important;
-        font-size: 0.95rem !important;
-    }
-
-    .django-styled-form input,
-    .django-styled-form select {
-        display: block !important;
-        width: 100% !important;
-        padding: 11px 14px !important;
-        border: 2px solid #ecf0f1 !important;
-        border-radius: 10px !important;
-        font-size: 0.95rem !important;
-        outline: none !important;
-        box-sizing: border-box !important;
-        transition: border-color 0.3s ease !important;
-        background-color: #ffffff !important;
-    }
-
-    .django-styled-form input:focus,
-    .django-styled-form select:focus {
-        border-color: #1f5b97 !important;
-    }
-
-    .django-styled-form .helptext {
-        font-size: 0.8rem !important;
-        color: #95a5a6 !important;
-        margin-top: 4px !important;
-        line-height: 1.4 !important;
-    }
-
-    .django-styled-form .errorlist {
-        list-style: none !important;
-        padding: 0 !important;
-        margin: 0 0 10px 0 !important;
-        color: #c0392b !important;
-        font-weight: 600 !important;
-        font-size: 0.85rem !important;
-    }
-</style>
 {% endblock %}

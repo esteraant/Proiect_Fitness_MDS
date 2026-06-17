@@ -2,9 +2,9 @@
 {% block title %}Sala Mare - AlgoRhythm Gym{% endblock %}
 {% block content %}
 
-<div class="welcome-card" style="margin-bottom: 1.5rem;">
-    <h2 style="margin: 0;"><i class="fa-solid fa-dumbbell"></i> Sala Mare</h2>
-    <p style="margin: 6px 0 0; color: #7f8c8d;">
+<div class="welcome-card gym-header">
+    <h2 class="gym-title"><i class="fa-solid fa-dumbbell"></i> Sala Mare</h2>
+    <p class="gym-subtitle">
         Acces liber la aparate &mdash; capacitate maxima
         <strong>{{ sala_mare.capacity|default:40 }} persoane</strong>
         <br>
@@ -14,46 +14,34 @@
 </div>
 
 {% if messages %}
-<div style="margin-bottom: 1.5rem;">
+<div class="gym-messages">
     {% for message in messages %}
-    <div style="
-        padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; font-size: 0.95rem;
-        background: {% if message.tags == 'error' %}#fdecea{% elif message.tags == 'success' %}#eafaf1{% else %}#eaf4fb{% endif %};
-        color: {% if message.tags == 'error' %}#c0392b{% elif message.tags == 'success' %}#1e8449{% else %}#1f5b97{% endif %};
-        border-left: 4px solid {% if message.tags == 'error' %}#e74c3c{% elif message.tags == 'success' %}#27ae60{% else %}#3498db{% endif %};
-    ">{{ message }}</div>
+    <div class="gym-alert {% if message.tags == 'error' %}gym-alert-error{% elif message.tags == 'success' %}gym-alert-success{% else %}gym-alert-info{% endif %}">
+        {{ message }}
+    </div>
     {% endfor %}
 </div>
 {% endif %}
 
 
 <!-- legenda -->
-<div style="display: flex; gap: 16px; margin-bottom: 1.5rem; font-size: 0.85rem; flex-wrap: wrap;">
-    <span><span style="display:inline-block;width:12px;height:12px;background:#27ae60;border-radius:3px;margin-right:5px;"></span>Disponibil</span>
-    <span><span style="display:inline-block;width:12px;height:12px;background:#e67e22;border-radius:3px;margin-right:5px;"></span>Ocupat 50-79%</span>
-    <span><span style="display:inline-block;width:12px;height:12px;background:#e74c3c;border-radius:3px;margin-right:5px;"></span>Aproape plin</span>
-    <span><span style="display:inline-block;width:12px;height:12px;background:#bdc3c7;border-radius:3px;margin-right:5px;"></span>Trecut / Indisponibil</span>
-    <span><span style="display:inline-block;width:12px;height:12px;background:#f0e6ff;border-radius:3px;margin-right:5px;border:1px solid #9b59b6;"></span>Rezervat de tine</span>
+<div class="gym-legend">
+    <span><span class="gym-legend-box gym-box-green"></span>Disponibil</span>
+    <span><span class="gym-legend-box gym-box-orange"></span>Ocupat 50-79%</span>
+    <span><span class="gym-legend-box gym-box-red"></span>Aproape plin</span>
+    <span><span class="gym-legend-box gym-box-gray"></span>Trecut / Indisponibil</span>
+    <span><span class="gym-legend-box gym-box-purple"></span>Rezervat de tine</span>
 </div>
 
 <!-- tab-uri zile -->
-<div style="display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap;">
+<div class="gym-tabs">
     {% for zi in toate_zilele %}
     <button
         onclick="schimbaZi('{{ zi.data }}')"
         id="tab-{{ zi.data }}"
-        style="
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: 1.5px solid #dce1e7;
-            background: white;
-            color: #2c3e50;
-            font-size: 0.88rem;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
-        "
-    >{{ zi.label }}</button>
+        class="gym-tab-btn">
+        {{ zi.label }}
+    </button>
     {% endfor %}
 </div>
 
@@ -67,37 +55,25 @@
 
             {% regroup zi.sloturi by ora|slice:":2" as ore_grupate %}
             {% for grup in ore_grupate %}
-            <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
+            <div class="gym-hour-block">
 
                 <!-- header ora -->
-                <div style="padding: 10px 16px; background: #f8f9fa; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px;">
-                    <span style="font-weight: 700; color: #2c3e50; font-size: 1rem;">{{ grup.grouper }}:00</span>
+                <div class="gym-hour-header">
+                    <span class="gym-hour-title">{{ grup.grouper }}:00</span>
                     {% with grup.list|first as primul %}
-                    <div style="flex:1; height:6px; background:#f0f0f0; border-radius:3px; overflow:hidden; max-width:120px;">
-                        <div style="height:100%; width:{{ primul.pct }}%; background:{% if primul.pct >= 80 %}#e74c3c{% elif primul.pct >= 50 %}#e67e22{% else %}#27ae60{% endif %}; border-radius:3px;"></div>
+                    <div class="gym-progress-track">
+                        <div class="gym-progress-fill {% if primul.pct >= 80 %}fill-red{% elif primul.pct >= 50 %}fill-orange{% else %}fill-green{% endif %}" style="width: {{ primul.pct }}%;"></div>
                     </div>
-                    <span style="font-size:0.8rem; color:#7f8c8d;">{{ primul.sesiuni }}/{{ primul.capacitate }} loc.</span>
+                    <span class="gym-progress-text">{{ primul.sesiuni }}/{{ primul.capacitate }} loc.</span>
                     {% endwith %}
                 </div>
 
                 <!-- sferturi de ora -->
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;">
+                <div class="gym-slots-grid">
                     {% for slot in grup.list %}
                     <label
                         id="label-{{ zi.data }}-{{ slot.ora|slugify }}"
-                        style="
-                            padding: 12px 8px;
-                            text-align: center;
-                            border-right: 1px solid #f0f0f0;
-                            {% if forloop.last %}border-right: none;{% endif %}
-                            cursor: {% if slot.liber %}pointer{% else %}not-allowed{% endif %};
-                            background: {% if slot.user_rezervat %}#f0e6ff{% elif slot.trecut %}#fafafa{% elif not slot.liber %}#fff5f5{% else %}white{% endif %};
-                            transition: background 0.15s;"
-                        
-                        {% if slot.liber %}
-                        onmouseover="this.style.background='#eaf4fb'"
-                        onmouseout="resetSlot(this, '{{ zi.data }}', '{{ slot.ora }}')"
-                        {% endif %}
+                        class="gym-slot {% if slot.user_rezervat %}reserved{% elif slot.trecut %}past{% elif not slot.liber %}full{% else %}free{% endif %}"
                     >
                         <input
                             type="radio"
@@ -106,24 +82,20 @@
                             data-data="{{ zi.data }}"
                             {% if not slot.liber %}disabled{% endif %}
                             style="display: none;"
-                            onchange="selectSlot(this, '{{ slot.ora }}', '{{ zi.data }}')"
-                        >
-                        <div style="
-                            font-size: 0.95rem; font-weight: 600;
-                            color: {% if slot.user_rezervat %}#9b59b6{% elif slot.trecut %}#bdc3c7{% elif not slot.liber %}#e74c3c{% else %}#2c3e50{% endif %};
-                            margin-bottom: 4px;
-                        ">{{ slot.ora }}</div>
-                        <div style="height:3px; background:#f0f0f0; border-radius:2px; overflow:hidden; margin:0 auto; width:80%;">
-                            <div style="height:100%; width:{{ slot.pct }}%; background:{% if slot.pct >= 80 %}#e74c3c{% elif slot.pct >= 50 %}#e67e22{% else %}#27ae60{% endif %};"></div>
+                            onchange="selectSlot(this, '{{ slot.ora }}', '{{ zi.data }}')">
+                        <div class="gym-slot-time">{{ slot.ora }}</div>
+                        <div class="gym-slot-bar-track">
+                            <div class="gym-progress-fill {% if slot.pct >= 80 %}fill-red{% elif slot.pct >= 50 %}fill-orange{% else %}fill-green{% endif %}" style="width: {{ slot.pct }}%;"></div>
                         </div>
+
                         {% if slot.user_rezervat %}
-                            <div style="font-size:0.7rem; color:#9b59b6; margin-top:3px; font-weight:600;">rezervat</div>
+                            <div class="gym-slot-status">rezervat</div>
                         {% elif slot.trecut %}
-                            <div style="font-size:0.7rem; color:#bdc3c7; margin-top:3px;">trecut</div>
+                            <div class="gym-slot-status">trecut</div>
                         {% elif not slot.liber %}
-                            <div style="font-size:0.7rem; color:#e74c3c; margin-top:3px; font-weight:600;">plin</div>
+                            <div class="gym-slot-status">plin</div>
                         {% else %}
-                            <div style="font-size:0.7rem; color:#27ae60; margin-top:3px;">liber</div>
+                            <div class="gym-slot-status">liber</div>
                         {% endif %}
                     </label>
                     {% endfor %}
@@ -135,25 +107,17 @@
     {% endfor %}
 
     <!-- info slot selectat -->
-    <div id="slot-info" style="display:none; margin-top:1.5rem; padding:14px 18px; background:#eafaf1; border-left:4px solid #27ae60; border-radius:8px; font-size:0.95rem; color:#1e8449;">
+    <div id="slot-info" class="gym-success-info" style="display:none;">
         <i class="fa-solid fa-check-circle"></i>
         Slot selectat: <strong id="slot-text"></strong>
-        &mdash; se termina la <strong id="slot-end-text"></strong>
+        &mdash; se termină la <strong id="slot-end-text"></strong>
     </div>
 
-    <button type="submit" id="btn-rezerva" disabled style="
-        margin-top: 1.5rem; width: 100%; padding: 14px;
-        background: #bdc3c7; color: white; border: none;
-        border-radius: 10px; font-size: 1rem; font-weight: 700;
-        cursor: not-allowed; transition: all 0.3s;
-    ">
-        <i class="fa-solid fa-check"></i> Rezerva locul
+    <button type="submit" id="btn-rezerva" class="gym-submit-btn" disabled>
+        <i class="fa-solid fa-check"></i> Rezervă locul
     </button>
 </form>
 
-<a href="{% url 'home' %}" class="btn-back" style="margin-top: 1rem; display: inline-flex;">
-    <i class="fa-solid fa-arrow-left" style="margin-right: 8px;"></i> Inapoi acasa
-</a>
 
 <script>
     var slotSelectat = null;
