@@ -34,5 +34,7 @@ urlpatterns = [
     path('program/', views.classes_view, name='fitness_classes_list'),
     path('management/genereaza-clase/', views.generate_recurrent_classes_view, name='generate_recurrent_classes'),
     path('chatbot/trimite/', views.chatbot_response_view, name='chatbot_trimite'),
+    path('add-instructor-review/<int:session_id>/', views.add_instructor_review_view, name='add_instructor_review'),
+    path('instructor/dashboard/', views.instructor_dashboard_view, name='instructor_dashboard'),
     
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

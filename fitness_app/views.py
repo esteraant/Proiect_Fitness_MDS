@@ -2,13 +2,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.admin.views.decorators import staff_member_required
 from .forms import CustomUserCreationForm
 from django.contrib import messages
 from .forms import ReviewForm
 from django.utils import timezone
 from datetime import datetime, date, timedelta
-from .models import Subscription, Booking, User, FitnessClass, Room, GymSession, Review
+from .models import Subscription, Booking, User, FitnessClass, Room, GymSession, Review, InstructorReview
 from django.db.models import Q
 from django.http import JsonResponse
 from .utils import GymSystemConfig, SubscriptionFactory
@@ -22,7 +21,6 @@ def login_view(request):
             user = form.get_user()
             login(request, user)
             return redirect('home') 
-        
     else:
         form = AuthenticationForm()
     return render(request, 'login.html', {'form': form})
@@ -45,10 +43,10 @@ def home_view(request):
             is_subscription_active = True
 
     clase_frecventate = Booking.objects.filter(user=request.user, attended=True).count()
-
     sesiuni_individuale = GymSession.objects.filter(user=request.user, start_time__lte=now).count()
   
     attended_count = clase_frecventate + sesiuni_individuale
+    
     # calculam progresul pentru saptamana curenta ca sa il comparam cu obiectivul saptamanal
     start_of_week = now - timedelta(days=now.weekday())
     start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -155,8 +153,7 @@ def home_view(request):
             text_existent = text_existent.replace("îți recomandăm să", "este indicat să")
             text_existent = text_existent.replace("Te recomandăm să", "Ai posibilitatea să")
             text_existent = text_existent.replace("te recomandăm să", "poți să")
-            
-            # Curățare clasică Markdown
+
             text_existent = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text_existent)
             text_existent = re.sub(r'_(.*?)_', r'<strong>\1</strong>', text_existent)
             
@@ -190,7 +187,8 @@ def home_view(request):
 
     # toate rezervarile la clase de grup
     rezervari_clase = Booking.objects.filter(user=request.user).order_by('fitness_class__start_time')
-
+    user_role = str(getattr(request.user, 'role', '')).upper()
+    is_instructor = (user_role == 'INSTRUCTOR' or user_role == 'INS')
     context = {
         'subscription': subscription,
         'is_subscription_active': is_subscription_active,
@@ -201,15 +199,23 @@ def home_view(request):
         'locuri_libere_gym': locuri_libere_gym,
         'sali_info': sali_info,
         'ai_occupancy_prompt': ai_occupancy_prompt,
-        'ai_recommendation': ai_recommendation,  # va prelua textul dinamic generat de LLM
+        'ai_recommendation': ai_recommendation,
         'show_freeze_reminder': show_freeze_reminder,
         'ai_freeze_prompt': ai_freeze_prompt,
-
         'sesiuni_1la1': sesiuni_1la1,
         'rezervari_clase': rezervari_clase,
+        'is_instructor': is_instructor,
     }
     return render(request, 'home.html', context)
 
+def instructor_context_processor(request):
+    """ Face variabila is_instructor disponibilă global în toate template-urile """
+    if request.user.is_authenticated:
+        user_role = str(getattr(request.user, 'role', '')).upper()
+        return {
+            'is_instructor': (user_role == 'INSTRUCTOR' or user_role == 'INS')
+        }
+    return {'is_instructor': False}
 
 @login_required
 def profile_view(request):
@@ -263,27 +269,107 @@ def freeze_subscription(request):
 def activate_subscription(request):
     sub, created = Subscription.objects.get_or_create(user=request.user)
     sub.start_date = date.today()
-    sub.end_date = date.today() + timedelta(days=30) # Îi dăm 30 de zile
+    sub.end_date = date.today() + timedelta(days=30)
     sub.is_frozen = False
     sub.save()
     return redirect('profile')
 
-
 @login_required
 def reviews_list_view(request):
-    # cautam clasele la care utilizatorul a participat 
     bookings_attended = Booking.objects.filter(user=request.user, attended=True)
     classes_to_review = []
     for b in bookings_attended:
         if not Review.objects.filter(user=request.user, fitness_class=b.fitness_class).exists():
             classes_to_review.append(b.fitness_class)
-    return render(request, 'reviews_list.html', {'classes_to_review': classes_to_review})
+    sessions_attended = GymSession.objects.filter(user=request.user, session_type='1TO1', attended=True)
+    sessions_to_review = []
+    for s in sessions_attended:
+        if not InstructorReview.objects.filter(user=request.user, instructor=s.instructor).exists():
+            s.session_id = s.id 
+            sessions_to_review.append(s)
+
+    return render(request, 'reviews_list.html', {
+        'classes_to_review': classes_to_review,
+        'sessions_to_review': sessions_to_review
+    })
+
+@login_required
+def add_instructor_review_view(request, session_id):
+    session = get_object_or_404(GymSession, id=session_id, session_type='1TO1')
+
+    if not session.attended or session.user != request.user:
+        messages.error(request, "Poți lăsa recenzii doar pentru ședințele private la care ai participat.")
+        return redirect('reviews_list')
+        
+    instructor = session.instructor
+
+    if request.method == 'POST':
+        rating_val = request.POST.get('rating')
+        comment_val = request.POST.get('comment')
+        
+        if rating_val and comment_val:
+            try:
+                InstructorReview.objects.create(
+                    user=request.user,
+                    instructor=instructor,
+                    rating=int(rating_val),
+                    comment=comment_val
+                )
+                messages.success(request, f"Recenzia pentru instructorul {instructor.get_full_name()} a fost trimisă!")
+                return redirect('home')
+            except Exception as e:
+                messages.error(request, "Ai lăsat deja o recenzie acestui instructor.")
+                return redirect('reviews_list')
+            
+    return render(request, 'add_review.html', {
+        'is_instructor_review': True,
+        'instructor': instructor
+    })
+
+@login_required
+def instructor_dashboard_view(request):
+    user_role = str(getattr(request.user, 'role', '')).upper()
+    
+    if not request.user.is_superuser and user_role != 'INSTRUCTOR' and user_role != 'INS':
+        return redirect('home')
+
+    now = timezone.now()
+    
+    assigned_classes = FitnessClass.objects.filter(
+        instructor=request.user, 
+        start_time__gte=now
+    ).order_by('start_time')
+
+    upcoming_1to1_sessions = GymSession.objects.filter(
+        instructor=request.user,
+        session_type='1TO1',
+        start_time__gte=now
+    ).order_by('start_time')
+    
+    past_classes = FitnessClass.objects.filter(
+        instructor=request.user,
+        start_time__lt=now
+    ).order_by('-start_time')[:10]
+
+    past_1to1_sessions = GymSession.objects.filter(
+        instructor=request.user,
+        session_type='1TO1',
+        start_time__lt=now
+    ).order_by('-start_time')[:10]
+
+    context = {
+        'assigned_classes': assigned_classes,
+        'upcoming_1to1_sessions': upcoming_1to1_sessions,
+        'past_classes': past_classes,
+        'past_1to1_sessions': past_1to1_sessions,
+    }
+    
+    return render(request, 'instructor_dashboard.html', context)
 
 @login_required
 def add_review_view(request, class_id):
     fitness_class = get_object_or_404(FitnessClass, id=class_id)
     
-    # verificam daca utilizatorul a participat la clasa respectiva
     has_attended = Booking.objects.filter(user=request.user, fitness_class=fitness_class, attended=True).exists()
     if not has_attended:
         messages.error(request, "Poți lăsa recenzii doar pentru clasele la care ai participat fizic.")
@@ -315,11 +401,9 @@ def book_class(request, class_id):
         messages.error(request, "Din păcate, nu mai sunt locuri disponibile la această clasă.")
         return redirect('fitness_classes_list')
     
-    # calculam ora de final pentru surpapuneri
     duration = getattr(fitness_class, 'duration_minutes', 60) 
     clasa_end_time = fitness_class.start_time + timedelta(minutes=int(duration))
     
-    # det daca aceasta rezervare este facuta de un parinte pentru copilul sau
     is_booking_for_child = False
     if fitness_class.is_for_children and hasattr(user, 'is_child') and not user.is_child:
         is_booking_for_child = True
@@ -328,7 +412,6 @@ def book_class(request, class_id):
     if request.method == 'POST':
         nume_copil = request.POST.get('child_name', '').strip()
 
-    # verificam daca exista deja o rezervare pentru acest copil specific sau pentru parinte
     if fitness_class.is_for_children and nume_copil:
         already_booked = Booking.objects.filter(user=user, fitness_class=fitness_class, child_name__iexact=nume_copil).exists()
     else:
@@ -351,19 +434,16 @@ def book_class(request, class_id):
         if fitness_class.start_time < b_end_time and clasa_end_time > b.fitness_class.start_time:
             if is_booking_for_child and b.child_name != nume_copil:
                 continue
-            # daca a inscris un copil si acum vrea sa se inscrie pe el, mergem mai departe
             if not fitness_class.is_for_children and b.child_name is not None:
                 continue
                 
             messages.error(request, f"Suprapunere de orar! Te-ai înscris deja la clasa '{b.fitness_class.name}' în acest interval.")
             return redirect('fitness_classes_list')
         
-    
     if fitness_class.is_for_children:
         if hasattr(user, 'is_child') and not user.is_child:
             messages.info(request, "Notă: Ai rezervat un loc pentru copilul tău la această clasă specială.")
     else:
-        # daca clasa este de adulti standard, blocam conturile de copii direct
         if hasattr(user, 'is_child') and user.is_child:
             messages.error(request, "Conturile de copii nu pot efectua rezervări la clasele de adulți. Înscrierea trebuie făcută de un părinte!")
             return redirect('fitness_classes_list')
@@ -388,16 +468,13 @@ def book_class(request, class_id):
             messages.warning(request, "Abonamentul tău este înghețat. Dezgheață-l din profil!")
             return redirect('profile')
 
-    
-    noua_rezervare = Booking.objects.create(
+    Booking.objects.create(
         user=request.user,
         fitness_class=fitness_class,
         child_name=nume_copil if is_booking_for_child else None
     )
     messages.success(request, "Loc rezervat cu succes!")
     return redirect('fitness_classes_list')
-
-
 
 @login_required
 def book_1to1_view(request, instructor_id):
@@ -487,7 +564,6 @@ def book_1to1_view(request, instructor_id):
     }
     return render(request, 'book_1to1.html', context)
 
-
 @login_required
 def gym_free_session_view(request):
     sala_mare = Room.objects.filter(room_type='GYM').first()
@@ -513,10 +589,10 @@ def gym_free_session_view(request):
         zi = today + timedelta(days=day_offset)
         zi_saptamana = zi.weekday()
         
-        if zi_saptamana <= 4:  # luni - vineri
+        if zi_saptamana <= 4:
             ora_start = 7
             ora_end_minute = 21 * 60 + 30
-        else:  # sambata, duminica
+        else:
             ora_start = 7
             ora_end_minute = 16 * 60 + 30
 
@@ -742,6 +818,17 @@ def class_detail_view(request, class_id):
     selected_day = request.GET.get('day_of_week')
     if selected_day and selected_day != 'all':
         sessions = [s for s in sessions if s.start_time.weekday() == int(selected_day)]
+        
+    bookings = None
+    total_enrolled = 0
+    show_attendance_list = False
+
+    if request.user.is_authenticated:
+        user_role = str(getattr(request.user, 'role', '')).upper()
+        if request.user.is_superuser or fitness_class.instructor == request.user or user_role == 'ADM':
+            show_attendance_list = True
+            bookings = Booking.objects.filter(fitness_class=fitness_class).select_related('user')
+            total_enrolled = bookings.count()
 
     context = {
         'fitness_class': fitness_class,
@@ -749,11 +836,17 @@ def class_detail_view(request, class_id):
         'available_months': available_months,
         'selected_month': selected_month,
         'selected_day': selected_day or 'all',
+        'bookings': bookings,
+        'total_enrolled': total_enrolled,
+        'show_attendance_list': show_attendance_list,
     }
     return render(request, 'class_detail.html', context)
     
-@staff_member_required
+@login_required
 def admin_dashboard_view(request):
+    if not request.user.is_superuser:
+        return redirect('home')
+
     total_users = User.objects.count()
     total_classes = FitnessClass.objects.count()
     recent_bookings = Booking.objects.all().order_by('-id')[:5] 
@@ -767,8 +860,11 @@ def admin_dashboard_view(request):
     }
     return render(request, 'admin_dashboard.html', context)
 
-@staff_member_required
+@login_required
 def generate_recurrent_classes_view(request):
+    if not request.user.is_superuser:
+        return redirect('home')
+
     instructors = User.objects.filter(role='INS')
     sali_grup = Room.objects.filter(room_type='GROUP')
     
@@ -814,6 +910,7 @@ def generate_recurrent_classes_view(request):
             clase_create = 0
             current_date = start_date
             
+            print("Current date is in year 2026.")
             while current_date <= end_date:
                 if current_date.weekday() in selected_days:
                     naive_datetime = datetime.combine(current_date, class_time)
@@ -865,7 +962,6 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
-
 @login_required
 def chatbot_response_view(request):
     if request.method == 'POST':
@@ -895,10 +991,22 @@ def chatbot_response_view(request):
             ]
             upcoming_classes_text = "\n".join(classes_list)
             
+            user_bookings = Booking.objects.filter(user=request.user, fitness_class__start_time__gte=now).order_by('fitness_class__start_time')
+            user_sessions = GymSession.objects.filter(user=request.user, start_time__gte=now).order_by('start_time')
+            
+            my_reservations_list = []
+            for b in user_bookings:
+                my_reservations_list.append(f"- Clasa {b.fitness_class.name} din data de {b.fitness_class.start_time.strftime('%d %b la %H:%M')}")
+            for s in user_sessions:
+                tip_sesiune = "Antrenament Privat 1-to-1" if s.session_type == '1TO1' else "Acces Liber Sala Mare"
+                nume_antrenor = f" cu {s.instructor.get_full_name()}" if s.instructor else ""
+                my_reservations_list.append(f"- {tip_sesiune}{nume_antrenor} programat pe {s.start_time.strftime('%d %b la %H:%M')}")
+                
+            my_reservations_text = "\n".join(my_reservations_list) if my_reservations_list else "Utilizatorul nu are nicio rezervare activă programată în acest moment."
+            
             if 'chat_history' not in request.session:
                 request.session['chat_history'] = []
             
-            # pastram istoricul ultimelor 6 replici pentru a nu supraincarca modelul
             istoric_curent = request.session['chat_history'][-6:]
             
             mesaj_combinat_cu_istoric = ""
@@ -909,7 +1017,8 @@ def chatbot_response_view(request):
             bot_agent = ChatbotSupportAgent()
             bot_response = bot_agent.get_support_response(
                 user_message=mesaj_combinat_cu_istoric, 
-                upcoming_classes_text=upcoming_classes_text
+                upcoming_classes_text=upcoming_classes_text,
+                user_reservations_text=my_reservations_text
             )
             
             if bot_response.startswith("{") and "book_class" in bot_response:
@@ -954,6 +1063,35 @@ def chatbot_response_view(request):
                     print("--- Eroare rezervare JSON: ---", str(e))
                     return JsonResponse({'response': "A apărut o eroare la efectuarea înscrierii."})
             
+            elif bot_response.startswith("{") and "cancel_class" in bot_response:
+                try:
+                    import json
+                    action_data = json.loads(bot_response)
+                    target_class_name = action_data.get('class_name', '')
+
+                    rezervare_existenta = Booking.objects.filter(
+                        user=request.user,
+                        fitness_class__name__icontains=target_class_name,
+                        fitness_class__start_time__gte=now
+                    ).order_by('fitness_class__start_time').first()
+
+                    if rezervare_existenta:
+                        nume_clasa_salvat = rezervare_existenta.fitness_class.name
+                        data_clasa_salvat = rezervare_existenta.fitness_class.start_time.strftime('%d %b la %H:%M')
+                        rezervare_existenta.delete()
+                        
+                        return JsonResponse({
+                            'response': f" <strong>Rezervare anulată cu succes!</strong><br>Te-am retras de la clasa de <strong>{nume_clasa_salvat}</strong> din data de {data_clasa_salvat}. Locul tău a fost eliberat."
+                        })
+                    else:
+                        return JsonResponse({
+                            'response': f"Am verificat în contul tău, însă <strong>nu ai nicio rezervare activă</strong> la o clasă viitoare de '{target_class_name}'."
+                        })
+
+                except Exception as e:
+                    print("--- Eroare revocare rezervare JSON: ---", str(e))
+                    return JsonResponse({'response': "S-a produs o eroare tehnică la anularea rezervării."})
+
             istoric_curent.append({'rol': 'user', 'text': user_message})
             istoric_curent.append({'rol': 'assistant', 'text': bot_response})
             request.session['chat_history'] = istoric_curent

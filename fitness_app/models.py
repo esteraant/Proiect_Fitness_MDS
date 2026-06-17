@@ -181,6 +181,7 @@ class GymSession(models.Model):
     session_type = models.CharField(max_length=4, choices=SESSION_TYPES)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField(null=True, blank=True)
+    attended = models.BooleanField(default=False, verbose_name="Prezent la ședință")
 
     def save(self, *args, **kwargs):
         # sesiunea 1-la-1 dureaza 90 de minute, accesul liber 60 de minute

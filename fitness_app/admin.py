@@ -18,8 +18,13 @@ class FitnessClassAdmin(admin.ModelAdmin):
     list_display = ('name', 'instructor', 'start_time', 'is_for_women_only')
     list_filter = ('is_for_women_only', 'type')
 
-admin.site.register(User, CustomUserAdmin)
+@admin.register(GymSession)
+class GymSessionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'instructor', 'session_type', 'start_time', 'end_time', 'attended')
+    list_editable = ('attended',)
+    list_filter = ('session_type', 'attended', 'start_time')
 
+admin.site.register(User, CustomUserAdmin)
 admin.site.register(Subscription)
 admin.site.register(Booking)
 admin.site.register(Review)
@@ -28,4 +33,3 @@ admin.site.register(FAQ)
 admin.site.register(ChatMessage)
 admin.site.register(Notification)
 admin.site.register(Room)
-admin.site.register(GymSession)

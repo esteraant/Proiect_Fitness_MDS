@@ -6,13 +6,12 @@ class BaseAIAgent:
     """Clasă de bază care stochează configurația sălii și cheia API."""
     def __init__(self):
         self.config = GymSystemConfig()
-        # Citim cheia API din settings.py
         self.api_key = getattr(settings, 'GROQ_API_KEY', '')
 
 class ChatbotSupportAgent(BaseAIAgent):
     """Agent AI responsabil de chat, capabil să identifice precis când să facă o rezervare."""
     
-    def get_support_response(self, user_message, upcoming_classes_text=""):
+    def get_support_response(self, user_message, upcoming_classes_text="", user_reservations_text=""):
         if not user_message:
             return "Cu ce te pot ajuta astăzi?"
 
@@ -30,19 +29,31 @@ class ChatbotSupportAgent(BaseAIAgent):
         )
         
         if upcoming_classes_text:
-            system_prompt += f"Programul curent al claselor specifice programate în timp real:\n{upcoming_classes_text}\n\n"
+            system_prompt += f"Programul curent al tuturor claselor generale din sală:\n{upcoming_classes_text}\n\n"
+            
+        if user_reservations_text:
+            system_prompt += f"Lista de rezervări active pe care acest utilizator SPECIFIC le are deja salvate în contul lui:\n{user_reservations_text}\n\n"
         
         system_prompt += (
             "Reguli stricte de comportament și FUNCȚIONARE:\n"
             "1. Răspunde politicos, prietenos și natural în limba română, adaptat direct la persoana a II-a singular.\n"
             "2. Când oferi detalii, folosește tag-uri HTML simple (precum <strong> pentru îngroșare și <br> pentru rând nou) pentru lărgirea lizibilității.\n"
-            "3. DETECTARE REZERVARE (FOARTE CRITIC): ...\n"
+            
+            "3. REGULI ABSOLUTE PENTRU FORMATUL JSON (FOARTE CRITIC):\n"
+            "   - Tu returnezi un obiect JSON STRUCTURAT EXCLUSIV în următoarele două situații:\n"
+            "     A) Când utilizatorul cere EXPLICIT să se înscrie / să rezerve o clasă (ex: 'înscrie-mă la Karate'). Atunci întorci:\n"
+            "        {\"action\": \"book_class\", \"class_name\": \"nume_clasă\"}\n"
+            "     B) Când utilizatorul cere EXPLICIT să anuleze / să șteargă o rezervare (ex: 'anulează Yoga'). Atunci întorci:\n"
+            "        {\"action\": \"cancel_class\", \"class_name\": \"nume_clasă\"}\n\n"
+            
+            "   - PENTRU TOATE CELELALTE SITUAȚII:\n"
+            "     Dacă utilizatorul te întreabă ce rezervări are în contul său, NU genera sub nicio formă obiecte JSON. Folosește lista de rezervări primită mai sus în prompt și citește-i-le politicos și clar în text liber (ex: 'În contul tău am găsit următoarele rezervări active:...'). Dacă lista indică faptul că nu are rezervări, spune-i amabil acest lucru.\n\n"
+            
             "4. Dacă utilizatorul vrea o rezervare la o activitate care NU se află deloc în listă... \n" 
             "5. NU folosi sub nicio formă emoji-uri și nu combina în același răspuns textul liber cu formatul JSON.\n"
-            "6. GESTIONARE PRINCIPIALĂ OFF-TOPIC: Dacă utilizatorul pune întrebări complet colaterale, glume sau subiecte care nu au nicio legătură cu sala de fitness, nutriția, programul sau serviciile voastre (ex: despre unicorni, politică, filme), răspunde-i scurt, glumeț și amabil, dar REDIRECȚIONEAZĂ-L imediat în aceeași replică înapoi către sală. "
-            "Exemplu de abordare: 'Deși mi-ar plăcea să avem un unicorn la recepție, eu mă pricep cel mai bine la fitness! Cu ce te pot ajuta astăzi la AlgoRhythm Gym? Vrei să afli programul sau să te înscrii la o clasă?'\n"
-            "7. INTERZICERE MARKDOWN (CRITIC): Este STRICT INTERZIS să folosești caractere speciale din Markdown, cum ar fi asteriscuri duble (**text**) sau caractere underscore (_text_) pentru a evidenția cuvinte. Pentru orice evidențiere sau îngroșare de text, folosește EXCLUSIV tag-ul HTML <strong>text</strong>."
-)
+            "6. GESTIONARE PRINCIPIALĂ OFF-TOPIC: Dacă utilizatorul pune întrebări complet colaterale, glume sau subiecte care nu au nicio legătură cu sala, răspunde-i scurt, glumeț și amabil, dar redirecționează-l înapoi.\n"
+            "7. INTERZICERE MARKDOWN (CRITIC): Nu folosi caractere speciale din Markdown (** sau _). Pentru orice evidențiere sau îngroșare de text, folosește EXCLUSIV tag-ul HTML <strong>text</strong>."
+        )
 
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
@@ -91,7 +102,7 @@ class GymAnalyticsAgent(BaseAIAgent):
             "- ADRESARE DIRECTĂ (OBLIGATORIU): Răspunde exclusiv la persoana a II-a singular (tu/ție). Te adresezi direct utilizatorului logat.\n"
             
             "- LISTĂ NEAGRĂ DE CUVINTE INTERZISE (STRICT INTERZIS):\n"
-            "  * Este COMPLET INTERZIS să folosești cuvântul 'recomandăm', 'recomand', 'sugerăm' sau orice derivat al verbului 'a recomanda/a sugera' la persoana I plural sau singular.\n"
+            "  * Este COMPLET INTERZIS să folosești cuvântul 'recomandăm', 'recomand', 'sugerăm' sau orice derivat al verbulvi 'a recomanda/a sugera' la persoana I plural sau singular.\n"
             "  * Motiv: Tu nu ești o echipă de oameni, ești un panou de bord automatizat (dashboard istoric).\n"
             
             "- GHID DE ÎNLOCUIRE A FORMULĂRILOR (AȘA NU vs. AȘA DA):\n"

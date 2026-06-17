@@ -37,6 +37,7 @@
         </div>
 
 
+        <div class="calendar-section-header"
         <div
             style="margin-top: 35px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
             <h3 style="color: #2c3e50; margin: 0;">Calendar Ședințe</h3>
@@ -47,6 +48,8 @@
                 <select name="month" id="monthSelect" onchange="document.getElementById('monthFilterForm').submit();"
                     style="padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-weight: 600; color: #2c3e50; cursor: pointer;">
                     {% for month_key, month_name in available_months.items %}
+                    <option value="{{ month_key }}" {% if month_key == selected_month %}selected{% endif %}>{{ month_name }}</option>
+
                     <option value="{{ month_key }}">{{ month_name }}</option>
                     {% endfor %}
                 </select>
@@ -54,6 +57,14 @@
                 <select name="day_of_week" id="daySelect"
                     onchange="document.getElementById('monthFilterForm').submit();"
                     style="padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-weight: 600; color: #2c3e50; cursor: pointer;">
+                    <option value="all" {% if selected_day == 'all' %}selected{% endif %}>Toate zilele</option>
+                    <option value="0" {% if selected_day == '0' %}selected{% endif %}>Luni</option>
+                    <option value="1" {% if selected_day == '1' %}selected{% endif %}>Marți</option>
+                    <option value="2" {% if selected_day == '2' %}selected{% endif %}>Miercuri</option>
+                    <option value="3" {% if selected_day == '3' %}selected{% endif %}>Joi</option>
+                    <option value="4" {% if selected_day == '4' %}selected{% endif %}>Vineri</option>
+                    <option value="5" {% if selected_day == '5' %}selected{% endif %}>Sâmbătă</option>
+                    <option value="6" {% if selected_day == '6' %}selected{% endif %}>Duminică</option>
                     <option value="all">Toate zilele</option>
                     <option value="0">Luni</option>
                     <option value="1">Marți</option>
@@ -113,6 +124,44 @@
             {% endfor %}
         </div>
 
+        {% if show_attendance_list %}
+        <div style="margin-top: 45px; border-top: 2px solid #2ecc71; padding-top: 20px;">
+            <h3 style="color: #2c3e50; margin: 0 0 10px 0; display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-users" style="color: #2ecc71;"></i> Lista Clienților Înscriși
+            </h3>
+            <p style="font-size: 0.9rem; color: #7f8c8d; margin: 0 0 20px 0;">
+                Prezențe înregistrate pentru această ședință specifică: <strong>{{ total_enrolled }}</strong> clienți.
+            </p>
+
+            {% if bookings %}
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #ecf0f1; color: #7f8c8d; font-weight: 600;">
+                        <th style="padding: 12px 8px; width: 60px;">#</th>
+                        <th style="padding: 12px 8px;">Nume Complet</th>
+                        <th style="padding: 12px 8px;">Nume Utilizator (Username)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in bookings %}
+                    <tr style="border-bottom: 1px solid #f1f2f6;">
+                        <td style="padding: 12px 8px; color: #7f8c8d;">{{ forloop.counter }}</td>
+                        <td style="padding: 12px 8px; font-weight: bold; color: #2c3e50;">
+                            {{ booking.user.get_full_name|default:"Nespecificat" }}
+                        </td>
+                        <td style="padding: 12px 8px; color: #1f5b97;">@{{ booking.user.username }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p
+                style="color: #7f8c8d; font-style: italic; text-align: center; padding: 20px; background: #f8fafc; border-radius: 6px; border: 1px dashed #cbd5e1;">
+                Niciun client înscris momentan la această ședință.
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
     <div class="navigation-actions">
