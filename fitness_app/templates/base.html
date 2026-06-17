@@ -26,28 +26,36 @@
 
     <nav class="navbar">
         <div class="nav-brand">AlgoRhythm Gym</div>
-        <ul class="nav-links">
-            <li><a href="{% url 'home' %}">Acasă</a></li>
-            <li><a href="{% url 'fitness_classes_list' %}">Program Clase</a></li>
-            <li><a href="{% url 'instructors' %}">Instructori</a></li>
-            <li><a href="{% url 'profile' %}">Profil</a></li>
-            <li><a href="{% url 'gym_free_session' %}">Sala Mare</a></li>
-            <li><a href="{% url 'buy_subscription' %}">Abonamente</a></li>
+        
+        <button class="hamburger-btn" id="hamburgerBtn">
+            <i class="fa-solid fa-bars"></i>
+        </button>
 
-            {% if is_instructor or user.is_superuser %}
-            <li><a href="{% url 'instructor_dashboard' %}" class="nav-special-link">Dashboard Instructor</a></li>
-            {% endif %}
+        <div class="nav-menu-wrapper" id="navMenu">
+            
+            <ul class="nav-links">
+                <li><a href="{% url 'home' %}">Acasă</a></li>
+                <li><a href="{% url 'fitness_classes_list' %}">Program Clase</a></li>
+                <li><a href="{% url 'instructors' %}">Instructori</a></li>
+                <li><a href="{% url 'profile' %}">Profil</a></li>
+                <li><a href="{% url 'gym_free_session' %}">Sala Mare</a></li>
+                <li><a href="{% url 'buy_subscription' %}">Abonamente</a></li>
 
-            {% if user.is_superuser %}
-            <li><a href="{% url 'admin_dashboard' %}" class="nav-special-link">Management</a></li>
-            {% endif %}
-        </ul>
+                {% if is_instructor or user.is_superuser %}
+                <li><a href="{% url 'instructor_dashboard' %}" class="nav-special-link">Dashboard Instructor</a></li>
+                {% endif %}
 
-        <div class="nav-auth">
-            <span class="user-tag">{{ user.username }} ({{ user.get_role_display }})</span>
-            <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
-        </div>
-    </nav>
+                {% if user.is_superuser %}
+                <li><a href="{% url 'admin_dashboard' %}" class="nav-special-link">Management</a></li>
+                {% endif %}
+            </ul>
+
+            <div class="nav-auth">
+                <span class="user-tag">{{ user.username }} ({{ user.get_role_display }})</span>
+                <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
+            </div>
+
+        </div> </nav>
 
     <div class="container">
         {% block content %}
@@ -111,6 +119,26 @@
     </div>
 
     <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const navMenu = document.getElementById('navMenu');
+
+            if (hamburgerBtn && navMenu) {
+                hamburgerBtn.addEventListener('click', function() {
+                    navMenu.classList.toggle('active');
+                    
+                    const icon = hamburgerBtn.querySelector('i');
+                    if (navMenu.classList.contains('active')) {
+                        icon.classList.remove('fa-bars');
+                        icon.classList.add('fa-xmark');
+                    } else {
+                        icon.classList.remove('fa-xmark');
+                        icon.classList.add('fa-bars');
+                    }
+                });
+            }
+        });
+
         function toggleChatWindow() {
             var chatBox = document.getElementById('chat-box');
             if (chatBox.style.display === 'none' || chatBox.style.display === '') {

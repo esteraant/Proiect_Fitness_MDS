@@ -22,7 +22,10 @@ body {
     align-items: center; 
     box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
 }
-
+.nav-brand {
+    margin-right: 40px;
+    white-space: nowrap; 
+}
 .nav-links {
     list-style: none;
     display: flex;
@@ -2533,3 +2536,216 @@ body {
     border-bottom: 2px solid #135698;
     display: inline-block;
 }
+
+
+
+/* hamburgerul */
+.hamburger-btn {
+    display: none; /* ascuns implicit */
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.8rem;
+    cursor: pointer;
+}
+
+.nav-menu-wrapper {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    justify-content: space-between;
+}
+.nav-links a {
+    position: relative;
+    text-decoration: none;
+    transition: color 0.25s ease;
+}
+
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    transform: scaleX(0);
+    height: 2px;
+    bottom: -4px;
+    left: 0;
+    background-color: #3498db; 
+    transform-origin: bottom center;
+    transition: transform 0.25s ease-out;
+}
+
+.nav-links a:hover::after {
+    transform: scaleX(1);
+}
+@keyframes paginaFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.container {
+    animation: paginaFadeIn 0.9s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+/*ecrane medii (tablete)*/
+@media (max-width:900px) {
+    .nav-brand {
+        display: none !important;
+    }
+    .navbar {
+        flex-direction: row !important;
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+        padding: 1rem 1.5rem !important;
+    }
+
+    .hamburger-btn {
+        display: block;
+        margin-right: auto;
+        margin-left: 0;
+        padding: 5px 0;
+    }
+
+    .nav-menu-wrapper {
+        display: none; 
+        width: 100%;
+        flex-direction: column;
+        margin-top: 15px;
+    }
+
+    .nav-menu-wrapper.active {
+        display: flex;
+    }
+
+    .container {
+        max-width: 100%;
+        padding: 0 1.5rem;
+        margin: 1.5rem auto;
+        box-sizing:border-box;
+    }
+
+    .footer-container {
+        justify-content:space-between;
+        padding: 0 2rem;
+    }
+
+    .navbar {
+        flex-direction: column !important;
+        gap: 15px !important;
+        padding: 1.5rem 1rem !important;
+        align-items: center;
+        box-sizing:border-box;
+        width: 100% !important;
+    }
+    
+    .nav-links {
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 15px 20px !important;
+        align-items: center;
+        width: 100%;
+        padding: 0;
+    }
+
+    .nav-links li {
+        width: 100%;
+        text-align: center;
+    }
+
+    .nav-links a, .nav-special {
+        color: white;
+        display: block;
+        padding: 10px 0;
+        font-size: 1.1rem;
+    }
+
+    nav-special {
+        color: white;
+    }
+    
+    .nav-auth {
+        margin-top: 5px;
+        justify-content: center !important;
+        flex-direction: column !important;
+        align-items: center;
+        gap: 10px !important;
+        width: 100%;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 15px;
+    }
+
+    .grid {
+        grid-template-columns: 1fr !important;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .card, .welcome-card {
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    .welcome-card div p {
+        margin: 5px 0 !important;
+    }
+}
+
+/*ecrane mici (telefoane)*/
+@media (max-width:650px) {
+    
+    .nav-links {
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+    
+    .nav-auth {
+        flex-direction: column !important;
+        gap: 10px;
+        margin-top: 5px;
+    }
+
+    .user-tag {
+        margin-right: 0;
+    }
+
+    .hero-content h1 {
+        font-size: 2.5rem !important;
+        letter-spacing: 2px;
+    }
+
+    .hero-content p {
+        font-size: 1rem !important;
+    }
+
+    .grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .ai-dashboard-container {
+        gap: 15px !important;
+    }
+
+    .ai-card-info {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    #chat-box {
+        width: calc(100% - 40px) !important;
+        right: 20px !important;
+        left: 20px !important;
+        bottom: 100px !important;
+        height: 400px !important;
+    }
+}
+
+.nav-special {
+        color: white !important;
+        font-weight: bold !important;
+    }
